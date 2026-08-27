@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — SGFI Student Registration Form</title>
+  <meta name="description" content="Register your school and game selection with the Student Games Federation of India. Fill in your personal, academic and guardian details to join the SGFI calendar." />
+  <link rel="canonical" href="https://studentgames.ind.in/registration.html" />
+  <meta name="theme-color" content="#123524" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SGFI — Student Games Federation of India" />
+  <meta property="og:title" content="Register — SGFI Student Registration Form" />
+  <meta property="og:description" content="Sign up for SGFI's school and college sports calendar in a few minutes." />
+  <meta property="og:image" content="https://studentgames.ind.in/assets/images/main.logo.png" />
+  <meta property="og:url" content="https://studentgames.ind.in/registration.html" />
+  <meta name="twitter:card" content="summary" />
+
+  <link rel="icon" href="https://studentgames.ind.in/assets/images/main.logo.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            green: { DEFAULT: '#123524', dark: '#0B2318', tint: '#1B4A32' },
+            gold: { DEFAULT: '#E4A11B', dark: '#C0850F', tint: '#F4CD73' },
+            chilli: { DEFAULT: '#D94F30', dark: '#B23D22' },
+            paper: '#FAF6EC',
+            card: '#F2EBD6',
+          },
+          fontFamily: {
+            display: ['"Bebas Neue"', 'sans-serif'],
+            body: ['"Barlow"', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="bg-paper text-[var(--sgfi-ink)] font-body">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- ============================== HEADER ============================== -->
+  <header class="site-header sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        <a href="index.html" class="flex items-center gap-3 shrink-0">
+          <img src="https://studentgames.ind.in/assets/images/main.logo.png" alt="SGFI — Student Games Federation of India logo" class="h-12 w-auto bg-paper rounded-md p-1" width="48" height="48" />
+          <span class="hidden sm:flex flex-col leading-none">
+            <span class="font-display text-2xl text-paper tracking-wide">SGFI</span>
+            <span class="text-[10px] uppercase tracking-[0.18em] text-gold">Student Games Federation of India</span>
+          </span>
+        </a>
+
+        <nav aria-label="Primary" class="hidden lg:flex items-center gap-7">
+          <a data-nav-link href="index.html" class="nav-link">Home</a>
+          <a data-nav-link href="about.html" class="nav-link">About</a>
+          <a data-nav-link href="reviews.html" class="nav-link">Reviews</a>
+          <a data-nav-link href="registration.html" class="nav-link">Registration</a>
+          <a data-nav-link href="affiliated-units.html" class="nav-link">Affiliated Units</a>
+          <a data-nav-link href="team.html" class="nav-link">Team</a>
+          <a data-nav-link href="spl.html" class="nav-link">SPL</a>
+          <a data-nav-link href="player-record.html" class="nav-link">Player Record</a>
+        </nav>
+
+        <div class="hidden lg:block">
+          <a href="registration.html" class="btn btn-primary text-sm">Register Now</a>
+        </div>
+
+        <button id="nav-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Toggle navigation menu" class="lg:hidden relative w-10 h-10 flex flex-col items-center justify-center gap-[5px]">
+          <span class="hamburger-line line-1 block w-6 h-[2px] bg-paper"></span>
+          <span class="hamburger-line line-2 block w-6 h-[2px] bg-paper"></span>
+          <span class="hamburger-line line-3 block w-6 h-[2px] bg-paper"></span>
+        </button>
+      </div>
+
+      <nav id="mobile-menu" aria-label="Mobile" class="lg:hidden">
+        <div class="flex flex-col gap-1 pb-5 pt-2 border-t border-white/10">
+          <a data-nav-link href="index.html" class="nav-link py-2">Home</a>
+          <a data-nav-link href="about.html" class="nav-link py-2">About</a>
+          <a data-nav-link href="reviews.html" class="nav-link py-2">Reviews</a>
+          <a data-nav-link href="registration.html" class="nav-link py-2">Registration</a>
+          <a data-nav-link href="affiliated-units.html" class="nav-link py-2">Affiliated Units</a>
+          <a data-nav-link href="team.html" class="nav-link py-2">Team</a>
+          <a data-nav-link href="spl.html" class="nav-link py-2">Student Premier League</a>
+          <a data-nav-link href="player-record.html" class="nav-link py-2">Player Record</a>
+          <a href="registration.html" class="btn btn-primary text-sm mt-3 justify-center">Register Now</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <!-- ============================== PAGE HEADER ============================== -->
+    <section class="relative bg-green py-16 lg:py-20 overflow-hidden">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center" data-reveal>
+        <p class="section-eyebrow mb-3">Join The Calendar</p>
+        <h1 class="font-display text-5xl sm:text-6xl text-paper">STUDENT REGISTRATION</h1>
+        <p class="mt-4 text-paper/75 max-w-xl mx-auto">Takes about five minutes. No fee is collected on this form.</p>
+      </div>
+      <div class="warli-frieze warli-frieze--gold absolute bottom-0 left-0 right-0" aria-hidden="true"></div>
+    </section>
+
+    <!-- ============================== FORM ============================== -->
+    <section class="py-16 lg:py-20 bg-paper">
+      <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Success state (shown after client-side validation passes) -->
+        <div id="registration-success" class="hidden card warli-frame p-10 text-center">
+          <div class="mx-auto mb-5 h-16 w-16 rounded-full bg-green flex items-center justify-center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4 4L19 7" stroke="#E4A11B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <h2 class="font-display text-3xl text-green mb-3">DETAILS LOOK GOOD</h2>
+          <p class="text-[var(--sgfi-ink-soft)] max-w-md mx-auto">
+            This is a demo form with no backend connected, so nothing has been submitted or
+            stored — but every field you filled in passed validation. Once this is wired to
+            SGFI's registration system, this is the confirmation a student would see.
+          </p>
+        </div>
+
+        <form id="registration-form" novalidate>
+          <!-- Personal details -->
+          <fieldset class="mb-10">
+            <legend class="font-display text-2xl text-green tracking-wide mb-1">Personal Details</legend>
+            <div class="hand-rule mb-6" aria-hidden="true"></div>
+
+            <div class="grid sm:grid-cols-2 gap-5">
+              <div class="field-wrapper sm:col-span-2">
+                <label class="field-label" for="full-name">Full Name</label>
+                <input class="field-input" type="text" id="full-name" name="full-name" data-required placeholder="As per school records" />
+                <p class="field-error">Please enter the student's full name.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="dob">Date of Birth</label>
+                <input class="field-input" type="date" id="dob" name="dob" data-required />
+                <p class="field-error">Please select a date of birth.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="gender">Gender</label>
+                <select class="field-select" id="gender" name="gender" data-required>
+                  <option value="" selected disabled>Select gender</option>
+                  <option>Male</option>
+                  <option>Female</option>
+                  <option>Other</option>
+                </select>
+                <p class="field-error">Please select a gender.</p>
+              </div>
+
+              <div class="field-wrapper sm:col-span-2">
+                <label class="field-label" for="aadhaar">Aadhaar Number</label>
+                <input class="field-input" type="text" inputmode="numeric" id="aadhaar" name="aadhaar" data-required data-pattern="aadhaar" placeholder="12-digit Aadhaar number" maxlength="14" />
+                <p class="field-hint">Used only to generate the student's unique SGFI player ID.</p>
+                <p class="field-error">Enter a valid 12-digit Aadhaar number.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Academic details -->
+          <fieldset class="mb-10">
+            <legend class="font-display text-2xl text-green tracking-wide mb-1">Academic Details</legend>
+            <div class="hand-rule mb-6" aria-hidden="true"></div>
+
+            <div class="grid sm:grid-cols-2 gap-5">
+              <div class="field-wrapper sm:col-span-2">
+                <label class="field-label" for="school">School / Institution Name</label>
+                <input class="field-input" type="text" id="school" name="school" data-required placeholder="e.g. Kendriya Vidyalaya" />
+                <p class="field-error">Please enter your school or institution name.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="board">Education Board</label>
+                <select class="field-select" id="board" name="board" data-required>
+                  <option value="" selected disabled>Select board</option>
+                  <option>CBSE</option>
+                  <option>ICSE</option>
+                  <option>State Board</option>
+                  <option>Other</option>
+                </select>
+                <p class="field-error">Please select an education board.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="state">State</label>
+                <select class="field-select" id="state" name="state" data-required>
+                  <option value="" selected disabled>Select state</option>
+                  <option>Rajasthan</option>
+                  <option>Delhi</option>
+                  <option>Uttar Pradesh</option>
+                  <option>Maharashtra</option>
+                  <option>Gujarat</option>
+                  <option>Punjab</option>
+                  <option>Haryana</option>
+                  <option>Madhya Pradesh</option>
+                  <option>Other</option>
+                </select>
+                <p class="field-error">Please select a state.</p>
+              </div>
+
+              <div class="field-wrapper sm:col-span-2">
+                <label class="field-label" for="district">District</label>
+                <input class="field-input" type="text" id="district" name="district" data-required placeholder="e.g. Jaipur" />
+                <p class="field-error">Please enter your district.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Game & guardian -->
+          <fieldset class="mb-10">
+            <legend class="font-display text-2xl text-green tracking-wide mb-1">Game &amp; Guardian Details</legend>
+            <div class="hand-rule mb-6" aria-hidden="true"></div>
+
+            <div class="grid sm:grid-cols-2 gap-5">
+              <div class="field-wrapper sm:col-span-2">
+                <label class="field-label" for="game">Game Selection</label>
+                <select class="field-select" id="game" name="game" data-required>
+                  <option value="" selected disabled>Select your game</option>
+                  <optgroup label="Traditional Indian Games">
+                    <option>Kabaddi</option>
+                    <option>Kho-Kho</option>
+                    <option>Gilli-Danda</option>
+                    <option>Langdi</option>
+                  </optgroup>
+                  <optgroup label="Team Sports">
+                    <option>Cricket</option>
+                    <option>Basketball</option>
+                    <option>Handball</option>
+                    <option>Badminton</option>
+                    <option>Baseball</option>
+                  </optgroup>
+                  <optgroup label="Combat Sports">
+                    <option>Wrestling</option>
+                    <option>Judo</option>
+                  </optgroup>
+                  <optgroup label="Mind Sports">
+                    <option>Chess</option>
+                    <option>Carrom</option>
+                  </optgroup>
+                  <optgroup label="Athletics &amp; Aquatics">
+                    <option>Swimming</option>
+                    <option>Tennis</option>
+                    <option>Yoga</option>
+                    <option>Skating</option>
+                  </optgroup>
+                </select>
+                <p class="field-error">Please select a game.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="guardian-name">Guardian Name</label>
+                <input class="field-input" type="text" id="guardian-name" name="guardian-name" data-required placeholder="Parent / guardian's name" />
+                <p class="field-error">Please enter a guardian's name.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="guardian-contact">Guardian Contact Number</label>
+                <input class="field-input" type="tel" inputmode="numeric" id="guardian-contact" name="guardian-contact" data-required data-pattern="phone" placeholder="10-digit mobile number" />
+                <p class="field-error">Enter a valid 10-digit mobile number.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="email">Email Address</label>
+                <input class="field-input" type="email" id="email" name="email" data-required placeholder="you@example.com" />
+                <p class="field-error">Enter a valid email address.</p>
+              </div>
+
+              <div class="field-wrapper">
+                <label class="field-label" for="phone">Student Phone Number</label>
+                <input class="field-input" type="tel" inputmode="numeric" id="phone" name="phone" data-required data-pattern="phone" placeholder="10-digit mobile number" />
+                <p class="field-error">Enter a valid 10-digit mobile number.</p>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Photo & consent -->
+          <fieldset class="mb-10">
+            <legend class="font-display text-2xl text-green tracking-wide mb-1">Photo &amp; Consent</legend>
+            <div class="hand-rule mb-6" aria-hidden="true"></div>
+
+            <div class="field-wrapper mb-6">
+              <label class="field-label" for="photo-upload">Passport-Size Photo</label>
+              <div class="flex items-center gap-4 flex-wrap">
+                <label for="photo-upload" class="btn btn-outline !text-[var(--sgfi-ink)] !border-[var(--sgfi-card-line)] cursor-pointer">
+                  Choose File
+                  <input class="sr-only" type="file" id="photo-upload" name="photo-upload" accept="image/*" />
+                </label>
+                <span id="photo-upload-filename" class="text-sm text-[var(--sgfi-ink-faint)]">No file chosen</span>
+              </div>
+              <p class="field-hint">JPG or PNG, under 2MB, plain background.</p>
+            </div>
+
+            <div class="field-wrapper">
+              <label class="checkbox-row">
+                <input type="checkbox" id="terms" name="terms" data-required />
+                <span class="text-sm text-[var(--sgfi-ink-soft)]">
+                  I confirm the details above are accurate and I agree to SGFI's
+                  <a href="#" class="text-chilli underline">Terms &amp; Conditions</a> and
+                  <a href="#" class="text-chilli underline">Privacy Policy</a>.
+                </span>
+              </label>
+              <p class="field-error">Please accept the terms to continue.</p>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="btn btn-primary w-full sm:w-auto">Submit Registration</button>
+          <p class="field-hint mt-3">This form is a front-end demo only — no data leaves your browser.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============================== FOOTER ============================== -->
+  <footer class="bg-green-dark text-paper">
+    <div class="warli-frieze warli-frieze--gold" aria-hidden="true"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <img src="https://studentgames.ind.in/assets/images/main.logo.png" alt="SGFI logo" class="h-12 w-auto bg-paper rounded-md p-1 mb-4" width="48" height="48" loading="lazy" />
+        <p class="text-paper/70 text-sm">
+          Join us and transform yourself physically and mentally. We organise the highest
+          number of competitions, in the largest categories of games, with the highest level
+          of dedication and precision.
+        </p>
+      </div>
+      <div>
+        <h3 class="font-display text-lg text-gold mb-4 tracking-wide">Our Foundations</h3>
+        <ul class="space-y-2 text-sm text-paper/75">
+          <li><a href="about.html" class="hover:text-gold">About Us</a></li>
+          <li><a href="reviews.html" class="hover:text-gold">Testimonials</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="font-display text-lg text-gold mb-4 tracking-wide">Useful Links</h3>
+        <ul class="space-y-2 text-sm text-paper/75">
+          <li><a href="player-record.html" class="hover:text-gold">Player Record</a></li>
+          <li><a href="reviews.html" class="hover:text-gold">Reviews</a></li>
+          <li><a href="registration.html" class="hover:text-gold">Registrations</a></li>
+          <li><a href="affiliated-units.html" class="hover:text-gold">Affiliated Units</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="font-display text-lg text-gold mb-4 tracking-wide">Reach Us</h3>
+        <ul class="space-y-2 text-sm text-paper/75">
+          <li>Call: <a href="tel:+919660321081" class="hover:text-gold">+91 96603 21081</a></li>
+          <li>WhatsApp: <a href="https://wa.me/918890272222" class="hover:text-gold">+91 88902 72222</a></li>
+          <li>Mail: <a href="mailto:studentgameindia@gmail.com" class="hover:text-gold">studentgameindia@gmail.com</a></li>
+          <li><a href="https://www.facebook.com/STUDENTGAMESFEDERATIONOFINDIA/" class="hover:text-gold">Facebook</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-white/10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row justify-between gap-3 text-xs text-paper/55">
+        <p>&copy; <span data-year>2026</span> Student Games Federation of India. All rights reserved.</p>
+        <div class="flex gap-4">
+          <a href="#" class="hover:text-gold">Privacy Policy</a>
+          <a href="#" class="hover:text-gold">Terms &amp; Conditions</a>
+          <a href="#" class="hover:text-gold">FAQ</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>
