@@ -7,19 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const fontSelect = document.getElementById('fontSelect');
   const colorPicker = document.getElementById('colorPicker');
   const colorHex = document.getElementById('colorHex');
-  const presetChips = document.querySelectorAll('.chip');
+  const presetChips = document.querySelectorAll('.chip, .cert-chip');
   const exportCanvas = document.getElementById('exportCanvas');
-  const ctx = exportCanvas.getContext('2d');
+  const ctx = exportCanvas ? exportCanvas.getContext('2d') : null;
 
   // Preload Template Image for Canvas
   const templateImg = new Image();
   templateImg.crossOrigin = 'anonymous';
   
-  // Use Base64 data if available (guarantees CORS-free execution on file:// protocol), else fallback to file path
   if (typeof TEMPLATE_BASE64 !== 'undefined' && TEMPLATE_BASE64) {
     templateImg.src = TEMPLATE_BASE64;
   } else {
-    templateImg.src = 'Image/Image.jpeg';
+    templateImg.src = '/Image/Image.jpeg';
   }
 
   // Ensure fonts are loaded before canvas rendering
@@ -30,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update Live Preview Name, Font, and Color
   function updateCertificateName() {
     const rawValue = recipientInput.value;
-    const name = rawValue.trim() !== '' ? rawValue.trim() : 'JATIN VERMA';
+    const name = rawValue.trim() !== '' ? rawValue.trim() : 'NAME';
     
     // Set Uppercase main recipient name
     displayRecipientName.textContent = name.toUpperCase();
@@ -60,7 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Event Listeners for Input Controls
-  recipientInput.addEventListener('input', updateCertificateName);
+  if (recipientInput) {
+    recipientInput.addEventListener('input', updateCertificateName);
+  }
 
   if (fontSelect) {
     fontSelect.addEventListener('change', updateCertificateName);
@@ -70,25 +71,29 @@ document.addEventListener('DOMContentLoaded', () => {
     colorPicker.addEventListener('input', updateCertificateName);
   }
 
-  btnClear.addEventListener('click', () => {
-    recipientInput.value = '';
-    recipientInput.focus();
-    updateCertificateName();
-  });
+  if (btnClear && recipientInput) {
+    btnClear.addEventListener('click', () => {
+      recipientInput.value = '';
+      recipientInput.focus();
+      updateCertificateName();
+    });
+  }
 
   // Preset Chips
   presetChips.forEach(chip => {
     chip.addEventListener('click', () => {
       const selectedName = chip.getAttribute('data-name');
-      recipientInput.value = selectedName;
-      updateCertificateName();
+      if (recipientInput) {
+        recipientInput.value = selectedName;
+        updateCertificateName();
+      }
     });
   });
 
   // Export High-Resolution PNG (1600 x 1131)
   function downloadCertificatePNG() {
     const rawValue = recipientInput.value;
-    const name = (rawValue.trim() !== '' ? rawValue.trim() : 'JATIN VERMA').toUpperCase();
+    const name = (rawValue.trim() !== '' ? rawValue.trim() : 'NAME').toUpperCase();
     const selectedFont = fontSelect ? fontSelect.value : "'Cinzel', serif";
     const selectedColor = colorPicker ? colorPicker.value : "#ca7d08";
 
@@ -170,7 +175,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  btnDownload.addEventListener('click', downloadCertificatePNG);
+  if (btnDownload) {
+    btnDownload.addEventListener('click', downloadCertificatePNG);
+  }
 
   // Initial update
   updateCertificateName();
