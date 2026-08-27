@@ -27,7 +27,7 @@ app.use('/api/upload', uploadRoutes);
 // Root Healthcheck Route
 app.get('/', (req, res) => {
   res.json({
-    message: 'SGFI Backend API (ES6 Express + MongoDB + Cloudinary + MySQL) is running smoothly',
+    message: 'SGFI Backend API (ES6 Express + MongoDB + Cloudinary) is running smoothly',
     status: 'online',
   });
 });

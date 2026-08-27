@@ -1,16 +1,23 @@
-import db from '../config/db.js';
+import { AuthMongoModel } from './authMongoModel.js';
 
 export class AuthModel {
   // Find user by username
   static async findByUsername(username) {
-    const query = 'SELECT * FROM login WHERE username = ?';
-    const [rows] = await db.execute(query, [username]);
-    return rows[0] || null;
+    try {
+      return await AuthMongoModel.findOne({ username }).lean();
+    } catch (err) {
+      console.error('Auth search error:', err.message);
+      return null;
+    }
   }
 
   // Update last_login timestamp
   static async updateLastLogin(id) {
-    const query = 'UPDATE login SET last_login = CURRENT_TIMESTAMP() WHERE id = ?';
-    await db.execute(query, [id]);
+    try {
+      await AuthMongoModel.findByIdAndUpdate(id, { last_login: new Date() });
+    } catch (err) {
+      console.error('Auth update error:', err.message);
+    }
   }
 }
+

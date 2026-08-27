@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!searchForm || !aadhaarInput || !recordResult) return;
 
-  const API_URL = 'http://localhost:5000/api/players/search';
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+  const API_URL = `${BACKEND_URL}/api/players/search`;
 
   searchForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -136,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
       recordResult.style.display = 'block';
       recordResult.innerHTML = `
         <div class="p-4 text-center text-[var(--sgfi-red-dark)] text-sm">
-          Unable to connect to backend server. Make sure <code>node server.js</code> is running on port 5000.
+          Unable to connect to backend server (${BACKEND_URL}). Please verify backend server is running.
         </div>
       `;
     } finally {

@@ -9,7 +9,7 @@ export const searchPlayerByAadhaar = async (req, res) => {
 
     const records = await PlayerModel.findByAadhaar(aadhaar);
     if (!records || records.length === 0) {
-      return res.status(440).json({ success: false, message: 'No player record found for this Aadhaar number.' });
+      return res.status(404).json({ success: false, message: 'No player record found for this Aadhaar number.' });
     }
 
     return res.status(200).json({

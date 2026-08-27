@@ -6,7 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!form) return;
 
-  const API_URL = 'http://localhost:5000/api/players/register';
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+  const API_URL = `${BACKEND_URL}/api/players/register`;
 
   // File input change listener
   if (photoInput && filenameLabel) {
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        alert(result.message || 'Registration failed. Make sure backend is running on port 5000.');
+        alert(result.message || `Registration failed. Make sure backend is running at ${BACKEND_URL}.`);
         return;
       }
 
@@ -144,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (err) {
       console.error('Registration error:', err);
-      alert('Error connecting to registration backend on http://localhost:5000.');
+      alert(`Error connecting to registration backend on ${BACKEND_URL}.`);
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
