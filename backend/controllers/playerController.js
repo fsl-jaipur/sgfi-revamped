@@ -1,10 +1,61 @@
 import { PlayerModel } from '../models/playerModel.js';
+import { uploadToCloudinary } from '../config/cloudinary.js';
+
+const PLAYER_PHOTO_FOLDER = 'sgfi player photos';
+
+const isValidAadhaar = (value) => /^\d{12}$/.test(String(value || '').trim());
+
+const normalizePlayerPayload = (payload) => ({
+  serial_no: payload.serial_no,
+  player_name: payload.player_name,
+  aadhaar_number: payload.aadhaar_number,
+  game: payload.game,
+  age_group: payload.age_group || 'U-19',
+  position: payload.position || 'REGISTERED PARTICIPANT',
+  state: payload.state || 'RAJASTHAN',
+  tournament_name: payload.tournament_name || 'NATIONAL SCHOOL GAMES 2026',
+  organised_at: payload.organised_at || 'SGFI SPORTS COMPLEX',
+  venue: payload.venue || 'MAIN STADIUM',
+  player_photo: payload.player_photo || '',
+});
+
+const validatePlayerPayload = (payload) => {
+  const { player_name, aadhaar_number, game, serial_no } = payload;
+
+  if (!player_name || !aadhaar_number || !game || !serial_no) {
+    return 'Serial No, Player Name, Aadhaar Number, and Game are required.';
+  }
+
+  if (!isValidAadhaar(aadhaar_number)) {
+    return 'Aadhaar number must be exactly 12 digits.';
+  }
+
+  return '';
+};
+
+const slugifyName = (name) => {
+  const slug = String(name || 'player')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
+  return slug || 'player';
+};
+
+const uploadPlayerPhoto = async (file, playerName) => {
+  if (!file) return '';
+
+  const publicId = `${slugifyName(playerName)}-${Date.now()}`;
+  const uploadResult = await uploadToCloudinary(file.buffer, PLAYER_PHOTO_FOLDER, publicId);
+  return uploadResult.secure_url;
+};
 
 export const searchPlayerByAadhaar = async (req, res) => {
   try {
     const { aadhaar } = req.params;
-    if (!aadhaar) {
-      return res.status(400).json({ success: false, message: 'Aadhaar number is required.' });
+    if (!isValidAadhaar(aadhaar)) {
+      return res.status(400).json({ success: false, message: 'Aadhaar number must be exactly 12 digits.' });
     }
 
     const records = await PlayerModel.findByAadhaar(aadhaar);
@@ -26,7 +77,8 @@ export const searchPlayerByAadhaar = async (req, res) => {
 export const getAllPlayers = async (req, res) => {
   try {
     const limit = req.query.limit || 100;
-    const players = await PlayerModel.findAll(limit);
+    const search = req.query.search || '';
+    const players = await PlayerModel.findAll(limit, search);
     return res.status(200).json({ success: true, count: players.length, data: players });
   } catch (error) {
     console.error('Error in getAllPlayers:', error);
@@ -50,15 +102,86 @@ export const getPlayerById = async (req, res) => {
 
 export const createPlayer = async (req, res) => {
   try {
-    const { player_name, aadhaar_number, game, serial_no } = req.body;
-    if (!player_name || !aadhaar_number || !game || !serial_no) {
-      return res.status(400).json({ success: false, message: 'Missing required player fields.' });
+    const playerData = normalizePlayerPayload(req.body);
+    const validationError = validatePlayerPayload(playerData);
+
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
     }
 
-    const newId = await PlayerModel.create(req.body);
-    return res.status(201).json({ success: true, message: 'Player record created successfully.', id: newId });
+    const photoUrl = await uploadPlayerPhoto(req.file, playerData.player_name);
+    if (photoUrl) playerData.player_photo = photoUrl;
+
+    const newId = await PlayerModel.create(playerData);
+    const player = await PlayerModel.findById(newId);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Player record created successfully.',
+      id: newId,
+      data: player,
+    });
   } catch (error) {
     console.error('Error in createPlayer:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });
+  }
+};
+
+export const updatePlayer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existingPlayer = await PlayerModel.findById(id);
+
+    if (!existingPlayer) {
+      return res.status(404).json({ success: false, message: 'Player not found.' });
+    }
+
+    const playerData = normalizePlayerPayload({
+      ...existingPlayer,
+      ...req.body,
+      player_photo: req.body.player_photo || existingPlayer.player_photo || '',
+    });
+    const validationError = validatePlayerPayload(playerData);
+
+    if (validationError) {
+      return res.status(400).json({ success: false, message: validationError });
+    }
+
+    const photoUrl = await uploadPlayerPhoto(req.file, playerData.player_name);
+    if (photoUrl) playerData.player_photo = photoUrl;
+
+    const updatedPlayer = await PlayerModel.update(id, playerData);
+    if (!updatedPlayer) {
+      return res.status(404).json({ success: false, message: 'Player not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Player record updated successfully.',
+      data: updatedPlayer,
+    });
+  } catch (error) {
+    console.error('Error in updatePlayer:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });
+  }
+};
+
+export const deletePlayer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deletedPlayer = await PlayerModel.softDelete(id, req.user?.id || null);
+
+    if (!deletedPlayer) {
+      return res.status(404).json({ success: false, message: 'Player not found.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Player record deleted successfully.',
+      data: deletedPlayer,
+    });
+  } catch (error) {
+    console.error('Error in deletePlayer:', error);
     return res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });
   }
 };
@@ -89,13 +212,15 @@ export const registerPlayer = async (req, res) => {
       });
     }
 
-    // Handle Cloudinary photo upload if file was attached
-    let photoUrl = '';
-    if (req.file) {
-      const { uploadToCloudinary } = await import('../config/cloudinary.js');
-      const uploadResult = await uploadToCloudinary(req.file.buffer, 'sgfi_player_photos');
-      photoUrl = uploadResult.secure_url;
+    if (!isValidAadhaar(aadhaarNum)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aadhaar number must be exactly 12 digits.',
+      });
     }
+
+    // Handle Cloudinary photo upload if file was attached
+    const photoUrl = await uploadPlayerPhoto(req.file, name);
 
     // Generate unique SGFI serial number
     const currentYear = new Date().getFullYear();

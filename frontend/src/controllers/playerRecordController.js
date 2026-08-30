@@ -1,32 +1,33 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const searchForm = document.getElementById('record-search-form');
-  const aadhaarInput = document.getElementById('aadhaar-input');
-  const aadhaarError = document.getElementById('aadhaar-error');
-  const recordResult = document.getElementById('record-result');
-  const searchBtn = document.getElementById('btn-search-record');
-  const recipientInput = document.getElementById('recipientInput');
+document.addEventListener("DOMContentLoaded", () => {
+  const searchForm = document.getElementById("record-search-form");
+  const aadhaarInput = document.getElementById("aadhaar-input");
+  const aadhaarError = document.getElementById("aadhaar-error");
+  const recordResult = document.getElementById("record-result");
+  const searchBtn = document.getElementById("btn-search-record");
+  const recipientInput = document.getElementById("recipientInput");
 
   if (!searchForm || !aadhaarInput || !recordResult) return;
 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+  const BACKEND_URL =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
   const API_URL = `${BACKEND_URL}/api/players/search`;
 
-  searchForm.addEventListener('submit', async (e) => {
+  searchForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const rawVal = aadhaarInput.value.trim().replace(/\s+/g, '');
+    const rawVal = aadhaarInput.value.trim().replace(/\D/g, "");
 
-    if (!rawVal || rawVal.length < 8) {
+    if (!/^\d{12}$/.test(rawVal)) {
       if (aadhaarError) {
-        aadhaarError.textContent = 'Please enter a valid Aadhaar number.';
-        aadhaarError.classList.remove('hidden');
+        aadhaarError.textContent = "Please enter a valid 12-digit Aadhaar number.";
+        aadhaarError.classList.remove("hidden");
       }
       return;
     }
 
-    if (aadhaarError) aadhaarError.classList.add('hidden');
+    if (aadhaarError) aadhaarError.classList.add("hidden");
 
     // Button loading state
-    const originalBtnHTML = searchBtn ? searchBtn.innerHTML : 'Search';
+    const originalBtnHTML = searchBtn ? searchBtn.innerHTML : "Search";
     if (searchBtn) {
       searchBtn.disabled = true;
       searchBtn.innerHTML = `
@@ -41,9 +42,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`${API_URL}/${rawVal}`);
       const data = await response.json();
 
-      if (!response.ok || !data.success || !data.data || data.data.length === 0) {
-        recordResult.classList.remove('hidden', 'visible');
-        recordResult.style.display = 'block';
+      if (
+        !response.ok ||
+        !data.success ||
+        !data.data ||
+        data.data.length === 0
+      ) {
+        recordResult.classList.remove("hidden", "visible");
+        recordResult.style.display = "block";
         recordResult.innerHTML = `
           <div class="p-6 text-center text-[var(--sgfi-red-dark)]">
             <svg class="w-12 h-12 mx-auto mb-3 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -58,17 +64,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Record found! Render live player details
       const player = data.data[0];
-      recordResult.classList.remove('hidden');
-      recordResult.style.display = 'block';
-      recordResult.classList.add('visible');
+      recordResult.classList.remove("hidden");
+      recordResult.style.display = "block";
+      recordResult.classList.add("visible");
 
-      const photoSrc = player.player_photo && player.player_photo.trim() !== '' 
-        ? player.player_photo 
-        : 'https://studentgames.ind.in/assets/images/main.logo.png';
+      const photoSrc =
+        player.player_photo && player.player_photo.trim() !== ""
+          ? player.player_photo
+          : "https://studentgames.ind.in/assets/images/main.logo.png";
 
       const initials = player.player_name
-        ? player.player_name.split(' ').map(n => n[0]).slice(0, 2).join('')
-        : 'SG';
+        ? player.player_name
+            .split(" ")
+            .map((n) => n[0])
+            .slice(0, 2)
+            .join("")
+        : "SG";
 
       recordResult.innerHTML = `
         <div class="flex flex-col sm:flex-row gap-6 items-start">
@@ -129,12 +140,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (recipientInput) {
         recipientInput.value = player.player_name;
         // Trigger input event to update live certificate preview
-        recipientInput.dispatchEvent(new Event('input', { bubbles: true }));
+        recipientInput.dispatchEvent(new Event("input", { bubbles: true }));
       }
     } catch (err) {
-      console.error('Aadhaar search error:', err);
-      recordResult.classList.remove('hidden');
-      recordResult.style.display = 'block';
+      console.error("Aadhaar search error:", err);
+      recordResult.classList.remove("hidden");
+      recordResult.style.display = "block";
       recordResult.innerHTML = `
         <div class="p-4 text-center text-[var(--sgfi-red-dark)] text-sm">
           Unable to connect to backend server (${BACKEND_URL}). Please verify backend server is running.

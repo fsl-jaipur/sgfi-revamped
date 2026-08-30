@@ -4,7 +4,7 @@ export class AuthModel {
   // Find user by username
   static async findByUsername(username) {
     try {
-      return await AuthMongoModel.findOne({ username }).lean();
+      return await AuthMongoModel.findOne({ username: String(username).trim() }).lean();
     } catch (err) {
       console.error('Auth search error:', err.message);
       return null;

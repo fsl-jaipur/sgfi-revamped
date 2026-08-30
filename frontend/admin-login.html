@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login - SGFI</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#123524" />
+
+  <link rel="icon" href="https://studentgames.ind.in/assets/images/main.logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/src/css/style.css" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body class="admin-shell">
+  <main class="admin-login-page" id="main-content">
+    <section class="admin-login-panel" aria-labelledby="admin-login-title">
+      <div class="admin-login-brand">
+        <img src="https://studentgames.ind.in/assets/images/main.logo.png" alt="SGFI logo" class="admin-login-logo" />
+        <div>
+          <p class="admin-kicker">Secure Admin</p>
+          <h1 id="admin-login-title" class="admin-login-title">SGFI Records</h1>
+        </div>
+      </div>
+
+      <form id="admin-login-form" class="admin-form-stack" novalidate>
+        <div>
+          <label class="field-label" for="admin-username">Username</label>
+          <input class="field-input" type="text" id="admin-username" name="username" autocomplete="username" required />
+        </div>
+
+        <div>
+          <label class="field-label" for="admin-password">Password</label>
+          <input class="field-input" type="password" id="admin-password" name="password" autocomplete="current-password" required />
+        </div>
+
+        <p id="admin-login-error" class="admin-alert admin-alert-error hidden" role="alert"></p>
+
+        <button id="admin-login-submit" type="submit" class="btn btn-primary admin-full-button">
+          Login
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <script type="module" src="/src/controllers/adminController.js"></script>
+</body>
+</html>

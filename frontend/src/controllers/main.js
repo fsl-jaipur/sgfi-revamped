@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
       e.preventDefault();
       var digitsOnly = recordInput.value.replace(/\D/g, "");
 
-      if (digitsOnly.length !== 8) {
+      if (digitsOnly.length !== 12) {
         recordError.classList.remove("hidden");
         recordInput.setAttribute("aria-invalid", "true");
         recordResult.classList.remove("visible");

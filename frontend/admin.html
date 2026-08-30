@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - SGFI Player Records</title>
+  <meta name="robots" content="noindex,nofollow" />
+  <meta name="theme-color" content="#123524" />
+
+  <link rel="icon" href="https://studentgames.ind.in/assets/images/main.logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/src/css/style.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/3.0.2/css/dataTables.dataTables.css" />
+  <link rel="stylesheet" href="/admin.css" />
+</head>
+<body class="admin-shell">
+  <header class="admin-topbar">
+    <a href="index.html" class="admin-brand" aria-label="SGFI home">
+      <img src="https://studentgames.ind.in/assets/images/main.logo.png" alt="SGFI logo" class="admin-brand-logo" />
+      <span>
+        <span class="admin-kicker">Admin Panel</span>
+        <span class="admin-brand-title">SGFI Player Records</span>
+      </span>
+    </a>
+
+    <div class="admin-user-block">
+      <span id="admin-current-user" class="admin-user-name">Admin</span>
+      <button id="admin-logout" type="button" class="admin-icon-button" title="Logout" aria-label="Logout">
+        <span aria-hidden="true">Logout</span>
+      </button>
+    </div>
+  </header>
+
+  <main id="main-content" class="admin-dashboard">
+    <section class="admin-summary-grid" aria-label="Record summary">
+      <div class="admin-metric">
+        <span class="admin-metric-label">Active Records</span>
+        <strong id="admin-total-records" class="admin-metric-value">0</strong>
+      </div>
+      <div class="admin-metric">
+        <span class="admin-metric-label">Selected Record</span>
+        <strong id="admin-selected-record" class="admin-metric-value">New</strong>
+      </div>
+      <div class="admin-metric">
+        <span class="admin-metric-label">Session</span>
+        <strong class="admin-metric-value">Protected</strong>
+      </div>
+    </section>
+
+    <section class="admin-layout">
+      <div class="admin-table-panel">
+        <div class="admin-panel-header">
+          <div>
+            <p class="admin-kicker">Database</p>
+            <h1 class="admin-section-title">Player Records</h1>
+          </div>
+          <button id="admin-new-record" type="button" class="btn btn-secondary admin-small-button">New Record</button>
+        </div>
+
+        <div class="admin-toolbar">
+          <label class="admin-search-label" for="admin-record-search">Search records</label>
+          <input class="field-input" type="search" id="admin-record-search" placeholder="Name, Aadhaar, serial no, game, or state" />
+          <button id="admin-refresh" type="button" class="btn btn-outline admin-toolbar-button">Refresh</button>
+        </div>
+
+        <p id="admin-record-status" class="admin-muted-text">Loading records...</p>
+
+        <div class="table-scroll admin-table-scroll">
+          <table id="admin-players-table" class="data-table admin-data-table">
+            <thead>
+              <tr>
+                <th scope="col">Player</th>
+                <th scope="col">Aadhaar</th>
+                <th scope="col">Game</th>
+                <th scope="col">State</th>
+                <th scope="col">Serial No</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-player-rows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside class="admin-form-panel" aria-labelledby="admin-form-title">
+        <div class="admin-panel-header">
+          <div>
+            <p class="admin-kicker">Record Editor</p>
+            <h2 id="admin-form-title" class="admin-section-title">Add Player</h2>
+          </div>
+        </div>
+
+        <form id="admin-player-form" class="admin-form-grid" novalidate>
+          <input type="hidden" id="admin-player-id" />
+
+          <div class="sm:col-span-2">
+            <label class="field-label" for="admin-player-name">Player Name</label>
+            <input class="field-input" type="text" id="admin-player-name" required />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-aadhaar-number">Aadhaar Number</label>
+            <input class="field-input" type="text" inputmode="numeric" maxlength="14" id="admin-aadhaar-number" required />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-serial-no">Serial No</label>
+            <input class="field-input" type="text" id="admin-serial-no" required />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-game">Game</label>
+            <input class="field-input" type="text" id="admin-game" required />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-age-group">Age Category</label>
+            <input class="field-input" type="text" id="admin-age-group" value="U-19" />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-position">Position / Medal</label>
+            <input class="field-input" type="text" id="admin-position" value="PARTICIPANT" />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-state">State Unit</label>
+            <input class="field-input" type="text" id="admin-state" value="RAJASTHAN" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="field-label" for="admin-tournament-name">Tournament</label>
+            <input class="field-input" type="text" id="admin-tournament-name" value="NATIONAL SCHOOL GAMES 2026" />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-organised-at">Organised At</label>
+            <input class="field-input" type="text" id="admin-organised-at" value="SGFI SPORTS COMPLEX" />
+          </div>
+
+          <div>
+            <label class="field-label" for="admin-venue">Venue</label>
+            <input class="field-input" type="text" id="admin-venue" value="MAIN STADIUM" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="field-label" for="admin-player-photo">Photo URL</label>
+            <input class="field-input" type="url" id="admin-player-photo" placeholder="Auto-filled after Cloudinary upload, or paste URL" />
+          </div>
+
+          <div class="sm:col-span-2">
+            <label class="field-label" for="admin-photo-upload">Upload Photo</label>
+            <input class="admin-file-input" type="file" id="admin-photo-upload" accept="image/*" />
+            <p id="admin-photo-help" class="field-hint">Uploads to Cloudinary folder sgfi player photos.</p>
+          </div>
+
+          <p id="admin-form-message" class="admin-alert hidden sm:col-span-2" role="alert"></p>
+
+          <div class="admin-form-actions sm:col-span-2">
+            <button id="admin-save-player" type="submit" class="btn btn-primary">Save Record</button>
+            <button id="admin-cancel-edit" type="button" class="btn btn-outline admin-cancel-button">Cancel</button>
+          </div>
+        </form>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://cdn.datatables.net/3.0.2/js/dataTables.js"></script>
+  <script type="module" src="/src/controllers/adminController.js"></script>
+</body>
+</html>

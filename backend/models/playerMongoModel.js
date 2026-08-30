@@ -13,6 +13,9 @@ const playerSchema = new mongoose.Schema(
     organised_at: { type: String, default: 'SGFI SPORTS COMPLEX' },
     venue: { type: String, default: 'MAIN STADIUM' },
     player_photo: { type: String, default: '' },
+    is_deleted: { type: Boolean, default: false, index: true },
+    deleted_at: { type: Date, default: null },
+    deleted_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   },
   { timestamps: true }
 );

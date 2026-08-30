@@ -41,8 +41,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const phone = document.getElementById('phone')?.value.trim();
     const terms = document.getElementById('terms')?.checked;
 
-    if (!fullName || !aadhaar || !game || !terms) {
+    const cleanAadhaar = aadhaar ? aadhaar.replace(/\D/g, '') : '';
+
+    if (!fullName || !cleanAadhaar || !game || !terms) {
       alert('Please fill in all required fields (Full Name, Aadhaar, Game selection, and accept Terms).');
+      return;
+    }
+
+    if (!/^\d{12}$/.test(cleanAadhaar)) {
+      alert('Please enter a valid 12-digit Aadhaar number.');
       return;
     }
 
@@ -62,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const formData = new FormData();
       formData.append('full_name', fullName);
-      formData.append('aadhaar', aadhaar);
+      formData.append('aadhaar', cleanAadhaar);
       formData.append('game', game);
       formData.append('state', state || 'RAJASTHAN');
       formData.append('school', school || '');
@@ -121,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
             <div>
               <dt class="text-[var(--sgfi-ink-faint)] text-xs">Aadhaar Number</dt>
-              <dd class="font-bold text-[var(--sgfi-ink)]">${aadhaar}</dd>
+              <dd class="font-bold text-[var(--sgfi-ink)]">${cleanAadhaar}</dd>
             </div>
             <div>
               <dt class="text-[var(--sgfi-ink-faint)] text-xs">Selected Game</dt>
