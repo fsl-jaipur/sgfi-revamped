@@ -64,8 +64,31 @@ const clearMessage = (element) => {
   element.classList.remove('admin-alert-error', 'admin-alert-success');
 };
 
-// Security check against BFCache / Browser Back button showing protected Admin Panel after logout
+// Security check against BFCache / Browser Back button showing protected Admin Panel or cached login state after logout
 window.addEventListener('pageshow', async (event) => {
+  if (window.location.pathname.endsWith('admin-login.html')) {
+    const form = qs('#admin-login-form');
+    const usernameInput = qs('#admin-username');
+    const passwordInput = qs('#admin-password');
+    const togglePasswordBtn = qs('#toggle-password');
+    const errorEl = qs('#admin-login-error');
+
+    if (form) form.reset();
+    if (usernameInput) usernameInput.value = '';
+    if (passwordInput) {
+      passwordInput.value = '';
+      passwordInput.type = 'password';
+    }
+    if (togglePasswordBtn) {
+      const closedIcon = togglePasswordBtn.querySelector('.eye-icon-closed');
+      const openIcon = togglePasswordBtn.querySelector('.eye-icon-open');
+      openIcon?.classList.add('hidden');
+      closedIcon?.classList.remove('hidden');
+      togglePasswordBtn.setAttribute('aria-label', 'Show password');
+    }
+    clearMessage(errorEl);
+  }
+
   if (window.location.pathname.endsWith('admin.html')) {
     if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
       window.location.reload();
@@ -87,20 +110,41 @@ const initLoginPage = async () => {
   const form = qs('#admin-login-form');
   if (!form) return;
 
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.success) {
-      window.location.replace('admin.html');
-      return;
-    }
-  } catch (_) {}
-
   const usernameInput = qs('#admin-username');
   const passwordInput = qs('#admin-password');
   const togglePasswordBtn = qs('#toggle-password');
   const errorEl = qs('#admin-login-error');
   const submitBtn = qs('#admin-login-submit');
+
+  const clearLoginForm = () => {
+    if (form) form.reset();
+    if (usernameInput) usernameInput.value = '';
+    if (passwordInput) {
+      passwordInput.value = '';
+      passwordInput.type = 'password';
+    }
+    if (togglePasswordBtn) {
+      const closedIcon = togglePasswordBtn.querySelector('.eye-icon-closed');
+      const openIcon = togglePasswordBtn.querySelector('.eye-icon-open');
+      openIcon?.classList.add('hidden');
+      closedIcon?.classList.remove('hidden');
+      togglePasswordBtn.setAttribute('aria-label', 'Show password');
+    }
+    clearMessage(errorEl);
+  };
+
+  clearLoginForm();
+  setTimeout(clearLoginForm, 50);
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      clearLoginForm();
+      window.location.replace('admin.html');
+      return;
+    }
+  } catch (_) {}
 
   if (togglePasswordBtn && passwordInput) {
     const closedIcon = togglePasswordBtn.querySelector('.eye-icon-closed');
@@ -156,6 +200,7 @@ const initLoginPage = async () => {
         throw new Error(data.message || 'Login failed.');
       }
 
+      clearLoginForm();
       window.location.replace('admin.html');
     } catch (error) {
       setMessage(errorEl, error.message || `Unable to connect to ${BACKEND_URL}.`);
