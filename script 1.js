@@ -7,20 +7,60 @@ document.addEventListener('DOMContentLoaded', () => {
   const fontSelect = document.getElementById('fontSelect');
   const colorPicker = document.getElementById('colorPicker');
   const colorHex = document.getElementById('colorHex');
-  const presetChips = document.querySelectorAll('.chip');
+  const presetChips = document.querySelectorAll('.chip, .cert-chip');
   const exportCanvas = document.getElementById('exportCanvas');
-  const ctx = exportCanvas.getContext('2d');
+  const ctx = exportCanvas ? exportCanvas.getContext('2d') : null;
 
-  // Preload Template Image for Canvas
-  const templateImg = new Image();
+  // Preload Template Image for Canvas dynamically
+  let templateImg = new Image();
   templateImg.crossOrigin = 'anonymous';
-  
-  // Use Base64 data if available (guarantees CORS-free execution on file:// protocol), else fallback to file path
-  if (typeof TEMPLATE_BASE64 !== 'undefined' && TEMPLATE_BASE64) {
-    templateImg.src = TEMPLATE_BASE64;
-  } else {
-    templateImg.src = 'Image/Image.jpeg';
-  }
+
+  const candidatePaths = [
+    '/Image/Image.jpeg',
+    '/Image/Image.jpg',
+    '/Image/Image.png',
+    '/Image/Image.webp',
+    '/Image/certificate.jpeg',
+    '/Image/certificate.jpg',
+    '/Image/certificate.png',
+    '/Image/Certificate.jpeg',
+    '/Image/Certificate.jpg',
+    '/Image/Certificate.png',
+    'Image/Image.jpeg',
+    'Image/Image.jpg',
+    'Image/Image.png',
+    'Image/Image.webp',
+  ];
+
+  const probeNextCandidate = (index = 0) => {
+    if (index >= candidatePaths.length) {
+      console.warn('Could not resolve certificate background image from candidate paths.');
+      return;
+    }
+    const path = candidatePaths[index];
+    const testImg = new Image();
+    testImg.crossOrigin = 'anonymous';
+    const cacheBusted = (path.includes('?') ? '&' : '?') + '_v=' + Date.now();
+    
+    testImg.onload = () => {
+      if (testImg.naturalWidth > 0) {
+        templateImg = testImg;
+        const certBg = document.getElementById('certificateBg');
+        if (certBg) {
+          certBg.crossOrigin = 'anonymous';
+          certBg.src = path + cacheBusted;
+        }
+      } else {
+        probeNextCandidate(index + 1);
+      }
+    };
+    testImg.onerror = () => {
+      probeNextCandidate(index + 1);
+    };
+    testImg.src = path + cacheBusted;
+  };
+
+  probeNextCandidate(0);
 
   // Ensure fonts are loaded before canvas rendering
   document.fonts?.ready?.then(() => {
@@ -29,38 +69,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Update Live Preview Name, Font, and Color
   function updateCertificateName() {
+    if (!recipientInput || !displayRecipientName) return;
     const rawValue = recipientInput.value;
-    const name = rawValue.trim() !== '' ? rawValue.trim() : 'JATIN VERMA';
-    
-    // Set Uppercase main recipient name
-    displayRecipientName.textContent = name.toUpperCase();
+    const name = rawValue.trim() !== '' ? rawValue.trim() : 'Jatin Verma';
 
-    // Apply selected font style
+    displayRecipientName.textContent = name;
+
     if (fontSelect) {
       displayRecipientName.style.fontFamily = fontSelect.value;
+    } else {
+      displayRecipientName.style.fontFamily = "'Shrikhand', cursive, serif";
     }
 
-    // Apply selected color
     if (colorPicker) {
       displayRecipientName.style.color = colorPicker.value;
-      colorHex.textContent = colorPicker.value.toLowerCase();
+      if (colorHex) colorHex.textContent = colorPicker.value.toLowerCase();
+    } else {
+      displayRecipientName.style.color = '#fb4d3d';
     }
 
-    // Auto Font Scaling based on length
     const length = name.length;
     if (length <= 14) {
-      displayRecipientName.style.fontSize = 'clamp(18px, 4.2vw, 62px)';
+      displayRecipientName.style.fontSize = 'clamp(18px, 5.2vw, 64px)';
     } else if (length <= 22) {
-      displayRecipientName.style.fontSize = 'clamp(15px, 3.4vw, 48px)';
+      displayRecipientName.style.fontSize = 'clamp(15px, 4.0vw, 48px)';
     } else if (length <= 30) {
-      displayRecipientName.style.fontSize = 'clamp(12px, 2.6vw, 36px)';
+      displayRecipientName.style.fontSize = 'clamp(12px, 3.0vw, 36px)';
     } else {
-      displayRecipientName.style.fontSize = 'clamp(10px, 2vw, 26px)';
+      displayRecipientName.style.fontSize = 'clamp(10px, 2.2vw, 26px)';
     }
   }
 
   // Event Listeners for Input Controls
-  recipientInput.addEventListener('input', updateCertificateName);
+  if (recipientInput) recipientInput.addEventListener('input', updateCertificateName);
 
   if (fontSelect) {
     fontSelect.addEventListener('change', updateCertificateName);
@@ -70,27 +111,34 @@ document.addEventListener('DOMContentLoaded', () => {
     colorPicker.addEventListener('input', updateCertificateName);
   }
 
-  btnClear.addEventListener('click', () => {
-    recipientInput.value = '';
-    recipientInput.focus();
-    updateCertificateName();
-  });
+  if (btnClear) {
+    btnClear.addEventListener('click', () => {
+      if (recipientInput) {
+        recipientInput.value = '';
+        recipientInput.focus();
+      }
+      updateCertificateName();
+    });
+  }
 
   // Preset Chips
   presetChips.forEach(chip => {
     chip.addEventListener('click', () => {
       const selectedName = chip.getAttribute('data-name');
-      recipientInput.value = selectedName;
-      updateCertificateName();
+      if (recipientInput) {
+        recipientInput.value = selectedName;
+        updateCertificateName();
+      }
     });
   });
 
-  // Export High-Resolution PNG (1600 x 1131)
-  function downloadCertificatePNG() {
-    const rawValue = recipientInput.value;
-    const name = (rawValue.trim() !== '' ? rawValue.trim() : 'JATIN VERMA').toUpperCase();
-    const selectedFont = fontSelect ? fontSelect.value : "'Cinzel', serif";
-    const selectedColor = colorPicker ? colorPicker.value : "#ca7d08";
+  // Export High-Resolution PNG (2048 x 1446)
+  async function downloadCertificatePNG() {
+    if (!btnDownload || !exportCanvas || !ctx) return;
+    const rawValue = recipientInput ? recipientInput.value : '';
+    const name = rawValue.trim() !== '' ? rawValue.trim() : 'Jatin Verma';
+    const selectedFont = fontSelect ? fontSelect.value : "'Shrikhand', cursive, serif";
+    const selectedColor = colorPicker ? colorPicker.value : "#fb4d3d";
 
     btnDownload.disabled = true;
     btnDownload.innerHTML = `
@@ -100,30 +148,40 @@ document.addEventListener('DOMContentLoaded', () => {
       Generating High-Res PNG...
     `;
 
-    // Ensure canvas dimensions match 1600 x 1131
-    exportCanvas.width = 1600;
-    exportCanvas.height = 1131;
+    if (document.fonts && document.fonts.load) {
+      try {
+        const fontFamilyName = selectedFont.split(',')[0].replace(/['"]/g, '');
+        await document.fonts.load(`120px "${fontFamilyName}"`);
+      } catch (_) {}
+    }
+
+    const exportWidth = templateImg?.naturalWidth || 2048;
+    const exportHeight = templateImg?.naturalHeight || 1446;
+
+    exportCanvas.width = exportWidth;
+    exportCanvas.height = exportHeight;
 
     const render = () => {
-      // 1. Draw Base Certificate Background Image
-      ctx.clearRect(0, 0, 1600, 1131);
-      ctx.drawImage(templateImg, 0, 0, 1600, 1131);
+      ctx.clearRect(0, 0, exportWidth, exportHeight);
+      ctx.drawImage(templateImg, 0, 0, exportWidth, exportHeight);
 
-      // 2. Draw Recipient Name (Centered at X=1000, Y=565)
-      let fontSize = 82;
+      // Name position percentage matching preview overlay (50% X, 46.25% Y)
+      const posX = exportWidth * 0.5;
+      const posY = exportHeight * 0.4625;
+
+      let fontSize = Math.round(exportHeight * (120 / 1446));
       if (name.length > 14) {
-        fontSize = Math.max(30, Math.round(82 * (14 / name.length)));
+        fontSize = Math.max(Math.round(exportHeight * (40 / 1446)), Math.round(fontSize * (14 / name.length)));
       }
 
       ctx.save();
-      ctx.font = `800 ${fontSize}px ${selectedFont}`;
+      ctx.font = `${fontSize}px ${selectedFont}`;
       ctx.fillStyle = selectedColor;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(name, 1000, 565);
+      ctx.fillText(name, posX, posY);
       ctx.restore();
 
-      // 3. Trigger Instant Download
       setTimeout(() => {
         try {
           const dataURL = exportCanvas.toDataURL('image/png', 1.0);
@@ -170,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  btnDownload.addEventListener('click', downloadCertificatePNG);
+  if (btnDownload) btnDownload.addEventListener('click', downloadCertificatePNG);
 
   // Initial update
   updateCertificateName();

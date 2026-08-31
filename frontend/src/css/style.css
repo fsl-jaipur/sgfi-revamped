@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Shrikhand&display=swap');
+
 /* ==========================================================================
    SGFI — Shared Stylesheet
    Palette: Turmeric & Deep Green (rural-India sports federation)
@@ -498,7 +500,7 @@ textarea:focus-visible,
   --cert-text-muted: #94a3b8;
   --cert-input-bg: #131c31;
   --cert-input-border: #2e3d5b;
-  --font-cert-name: 'Cinzel', serif;
+  --font-cert-name: 'Shrikhand', cursive, serif;
 }
 
 .cert-app-container, .app-container {
@@ -798,10 +800,10 @@ textarea:focus-visible,
 
 .cert-overlay-name-container, .overlay-name-container {
   position: absolute;
-  top: 40.5%;
-  left: 29.5%;
-  width: 65%;
-  height: 19%;
+  top: 41.5%;
+  left: 10%;
+  width: 80%;
+  height: 9.5%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -812,14 +814,14 @@ textarea:focus-visible,
 
 .cert-display-name, .display-name {
   font-family: var(--font-cert-name);
-  font-weight: 800;
-  color: #ca7d08;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 400;
+  color: #fb4d3d;
+  letter-spacing: 0em;
   margin: 0;
-  line-height: 1.1;
+  padding: 0;
+  line-height: 1;
   white-space: nowrap;
-  font-size: clamp(18px, 4.2vw, 62px);
+  font-size: clamp(18px, 5.2vw, 64px);
   text-align: center;
 }
 

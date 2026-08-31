@@ -10,7 +10,7 @@
   <link rel="icon" href="https://studentgames.ind.in/assets/images/main.logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Cinzel:wght@700;800;900&family=Montserrat:wght@700;800;900&family=Oswald:wght@700&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Cinzel:wght@700;800;900&family=Montserrat:wght@700;800;900&family=Oswald:wght@700&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -220,7 +220,8 @@
                 <div class="cert-control-subgroup">
                   <label for="fontSelect" class="cert-subgroup-label">Font Style:</label>
                   <select id="fontSelect" class="cert-select-input">
-                    <option value="'Cinzel', serif" selected>Cinzel (Classic/Golden)</option>
+                    <option value="'Shrikhand', cursive, serif" selected>Shrikhand (Retro Groovy - Certificate Default)</option>
+                    <option value="'Cinzel', serif">Cinzel (Classic/Golden)</option>
                     <option value="'Montserrat', sans-serif">Montserrat (Modern Bold)</option>
                     <option value="'Playfair Display', serif">Playfair Display (Elegant Serif)</option>
                     <option value="'Oswald', sans-serif">Oswald (Bold Condensed)</option>
@@ -229,8 +230,8 @@
                 <div class="cert-control-subgroup">
                   <label for="colorPicker" class="cert-subgroup-label">Name Color:</label>
                   <div class="cert-color-picker-wrapper">
-                    <input type="color" id="colorPicker" value="#ca7d08">
-                    <span id="colorHex">#ca7d08</span>
+                    <input type="color" id="colorPicker" value="#fb4d3d">
+                    <span id="colorHex">#fb4d3d</span>
                   </div>
                 </div>
               </div>
@@ -252,12 +253,12 @@
             <section class="cert-preview-section">
               <div class="cert-preview-header">
                 <span class="cert-preview-title">Live Certificate Preview</span>
-                <span class="cert-preview-hint">High Resolution 1600 × 1131 px</span>
+                <span class="cert-preview-hint">High Resolution</span>
               </div>
               <div class="cert-certificate-wrapper" id="certificateWrapper">
-                <img src="/Image/Image.jpeg" id="certificateBg" alt="Certificate Template" class="cert-certificate-bg">
+                <img id="certificateBg" alt="Certificate Template" class="cert-certificate-bg">
                 <div class="cert-overlay-name-container" id="nameContainer">
-                  <h3 id="displayRecipientName" class="cert-display-name">NAME</h3>
+                  <h3 id="displayRecipientName" class="cert-display-name">Jatin Verma</h3>
                 </div>
               </div>
             </section>
@@ -268,9 +269,8 @@
   </div>
 
   <!-- Off-screen canvas for high-res export -->
-  <canvas id="exportCanvas" width="1600" height="1131" style="display:none;"></canvas>
+  <canvas id="exportCanvas" width="2048" height="1150" style="display:none;"></canvas>
 
-  <script src="/Image/image_data.js"></script>
   <script src="https://cdn.datatables.net/3.0.2/js/dataTables.js"></script>
   <script type="module" src="/src/controllers/adminController.js"></script>
 </body>

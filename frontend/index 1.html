@@ -9,7 +9,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&family=Oswald:wght@700&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Cinzel:wght@700;800;900&family=Inter:wght@400;500;600;700&family=Montserrat:wght@700;800;900&family=Oswald:wght@700&family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">
   
   <!-- html2canvas fallback -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -19,14 +19,14 @@
 <body>
 
   <div class="app-container">
-    <!-- Header Section -->
     <header class="app-header">
-      <h1>Certificate of Recognition Generator</h1>
-      <p>Enter the recipient's name below to personalize and download your official MVP certificate.</p>
+      <div class="badge">BORCELLE ACADEMY</div>
+      <h1>Certificate Generator</h1>
+      <p>Enter recipient name to generate a customized high-resolution certificate.</p>
     </header>
 
-    <!-- Controls Panel -->
     <main class="main-content">
+      <!-- Control Panel -->
       <section class="control-panel">
         <div class="form-group">
           <label for="recipientInput">
@@ -37,39 +37,34 @@
             Recipient Name
           </label>
           <div class="input-wrapper">
-            <input 
-              type="text" 
-              id="recipientInput" 
-              placeholder="Enter recipient name" 
-              value="JATIN VERMA"
-              maxlength="40"
-              autocomplete="off"
-            >
+            <input type="text" id="recipientInput" placeholder="Enter name..." value="Jatin Verma" maxlength="40" autocomplete="off">
             <button type="button" class="btn-clear" id="btnClear" title="Clear input">&times;</button>
           </div>
         </div>
 
-        <!-- Styling Controls (Font & Color) -->
+        <!-- Font & Style Controls -->
         <div class="style-controls">
           <div class="control-subgroup">
             <label for="fontSelect">Font Style:</label>
-            <select id="fontSelect" class="select-input">
-              <option value="'Cinzel', serif" selected>Cinzel (Classic Classic/Golden)</option>
+            <select id="fontSelect">
+              <option value="'Shrikhand', cursive, serif" selected>Shrikhand (Retro Groovy)</option>
+              <option value="'Cinzel', serif">Cinzel (Classic/Golden)</option>
               <option value="'Montserrat', sans-serif">Montserrat (Modern Bold)</option>
-              <option value="'Playfair Display', serif">Playfair Display (Elegant Serif)</option>
+              <option value="'Playfair Display', serif">Playfair Display (Elegant)</option>
               <option value="'Oswald', sans-serif">Oswald (Bold Condensed)</option>
             </select>
           </div>
+
           <div class="control-subgroup">
             <label for="colorPicker">Name Color:</label>
             <div class="color-picker-wrapper">
-              <input type="color" id="colorPicker" value="#ca7d08">
-              <span id="colorHex">#ca7d08</span>
+              <input type="color" id="colorPicker" value="#fb4d3d">
+              <span id="colorHex">#fb4d3d</span>
             </div>
           </div>
         </div>
 
-        <!-- Download Action Button -->
+        <!-- Download Action -->
         <div class="action-row">
           <button id="btnDownload" class="btn-primary">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -86,32 +81,30 @@
       <section class="preview-section">
         <div class="preview-header">
           <span class="preview-title">Live Certificate Preview</span>
-          <span class="preview-hint">High Resolution 1600 × 1131 px</span>
+          <span class="preview-hint">High Resolution 2048 × 1446 px</span>
         </div>
 
         <div class="certificate-wrapper" id="certificateWrapper">
           <!-- Base Certificate Image Template -->
-          <img src="Image/Image.jpeg" id="certificateBg" alt="Certificate Template" class="certificate-bg">
+          <img id="certificateBg" alt="Certificate Template" class="certificate-bg">
           
           <!-- Dynamic Recipient Name Overlay -->
           <div class="overlay-name-container" id="nameContainer">
-            <h2 id="displayRecipientName" class="display-name">JATIN VERMA</h2>
+            <h2 id="displayRecipientName" class="display-name">Jatin Verma</h2>
           </div>
         </div>
       </section>
     </main>
 
     <footer class="app-footer">
-      <p>© 2026 Borcelle Academy | Basketball MVP Certificate Generator</p>
+      <p>© 2026 Borcelle Academy | Certificate Generator</p>
     </footer>
   </div>
 
   <!-- Off-screen Canvas for High-Res PNG Exporting -->
-  <canvas id="exportCanvas" width="1600" height="1131" style="display:none;"></canvas>
+  <canvas id="exportCanvas" width="2048" height="1446" style="display:none;"></canvas>
 
-  <!-- Base64 Fallback Script for CORS-free local execution -->
-  <script src="Image/image_data.js"></script>
   <!-- Main Script -->
-  <script src="script.js"></script>
+  <script type="module" src="/src/controllers/script.js"></script>
 </body>
 </html>

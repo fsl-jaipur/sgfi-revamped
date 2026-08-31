@@ -1,6 +1,90 @@
+// ============================================================================
+// DYNAMIC CERTIFICATE GENERATOR & IMAGE RESOLVER (SINGLE SOURCE OF TRUTH)
+// ============================================================================
+
+// 1. Dynamic Image Discovery via Vite Glob (Build/Dev time discovery of any filename/extension)
+const globImageModules = import.meta.glob(
+  [
+    '/public/Image/*.*',
+    '/public/image/*.*',
+    '../../public/Image/*.*',
+    '../../public/image/*.*',
+  ],
+  { eager: true, query: '?url', import: 'default' }
+);
+
+// Extract normalized URL list from Vite glob discovery
+function getDiscoveredGlobUrls() {
+  const urls = [];
+  for (const [key, val] of Object.entries(globImageModules)) {
+    if (typeof val === 'string' && val) {
+      urls.push(val);
+    }
+    // Normalize /public/ prefix to public web server URL path
+    const normalizedKey = key
+      .replace(/^(\.\.\/)+public\//, '/')
+      .replace(/^\/public\//, '/');
+    if (!urls.includes(normalizedKey)) {
+      urls.push(normalizedKey);
+    }
+  }
+  return urls;
+}
+
+// Generate candidate fallback URLs across all standard extensions & common naming conventions
+function getCandidateUrls() {
+  const discovered = getDiscoveredGlobUrls();
+  const baseNames = [
+    'Image',
+    'image',
+    'Certificate',
+    'certificate',
+    'Template',
+    'template',
+    'cert',
+    'Cert',
+    'bg',
+    'background',
+    'default',
+  ];
+  const extensions = [
+    'jpeg',
+    'jpg',
+    'png',
+    'webp',
+    'svg',
+    'avif',
+    'JPEG',
+    'JPG',
+    'PNG',
+    'WEBP',
+    'SVG',
+  ];
+  const prefixes = ['/Image/', 'Image/'];
+
+  const candidates = [...discovered];
+
+  for (const prefix of prefixes) {
+    for (const name of baseNames) {
+      for (const ext of extensions) {
+        const path = `${prefix}${name}.${ext}`;
+        if (!candidates.includes(path)) {
+          candidates.push(path);
+        }
+      }
+    }
+  }
+
+  return candidates;
+}
+
+let activeResolvedUrl = null;
 let templateImg = null;
+let isResolvingImage = false;
 let isGeneratorInitialized = false;
 let isDownloading = false;
+
+export let CERTIFICATE_IMAGE = '/Image/Image.jpeg';
 
 const NORMAL_DOWNLOAD_BTN_HTML = `
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -11,6 +95,131 @@ const NORMAL_DOWNLOAD_BTN_HTML = `
   Download Certificate
 `;
 
+// Probe a single image URL with cache-busting and CORS support
+function probeImage(url) {
+  return new Promise((resolve) => {
+    if (!url) {
+      resolve(null);
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const cacheBuster = (url.includes('?') ? '&' : '?') + '_v=' + Date.now();
+    const probeSrc = url + cacheBuster;
+
+    const cleanup = () => {
+      img.onload = null;
+      img.onerror = null;
+    };
+
+    img.onload = () => {
+      cleanup();
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        resolve({
+          url,
+          fullUrl: probeSrc,
+          img,
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+        });
+      } else {
+        resolve(null);
+      }
+    };
+
+    img.onerror = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    img.src = probeSrc;
+  });
+}
+
+function applyResolvedImageToDOM(resolved) {
+  if (!resolved) return;
+  const certBgEl = document.getElementById('certificateBg');
+  if (certBgEl) {
+    certBgEl.crossOrigin = 'anonymous';
+    certBgEl.src = resolved.fullUrl || resolved.url + '?_v=' + Date.now();
+  }
+
+  const wrapperEl = document.getElementById('certificateWrapper');
+  if (wrapperEl && resolved.width && resolved.height) {
+    wrapperEl.style.aspectRatio = `${resolved.width} / ${resolved.height}`;
+  }
+}
+
+// Dynamically resolve and activate the certificate image currently present in the Image folder
+export async function resolveActiveCertificateImage(forceRefresh = false) {
+  if (
+    activeResolvedUrl &&
+    templateImg &&
+    templateImg.naturalWidth > 0 &&
+    !forceRefresh
+  ) {
+    return {
+      url: activeResolvedUrl,
+      img: templateImg,
+      width: templateImg.naturalWidth,
+      height: templateImg.naturalHeight,
+    };
+  }
+
+  if (isResolvingImage) {
+    await new Promise((res) => setTimeout(res, 100));
+    if (activeResolvedUrl && templateImg) {
+      return {
+        url: activeResolvedUrl,
+        img: templateImg,
+        width: templateImg.naturalWidth,
+        height: templateImg.naturalHeight,
+      };
+    }
+  }
+
+  isResolvingImage = true;
+
+  try {
+    // 1. Fast parallel check of discovered glob URLs
+    const globUrls = getDiscoveredGlobUrls();
+    if (globUrls.length > 0) {
+      const globProbes = await Promise.all(globUrls.map(probeImage));
+      const validGlob = globProbes.find((res) => res !== null);
+      if (validGlob) {
+        activeResolvedUrl = validGlob.url;
+        CERTIFICATE_IMAGE = validGlob.url;
+        templateImg = validGlob.img;
+        applyResolvedImageToDOM(validGlob);
+        return validGlob;
+      }
+    }
+
+    // 2. Sequential / candidate probing across all common names and extensions
+    const candidates = getCandidateUrls();
+    for (const candidate of candidates) {
+      const res = await probeImage(candidate);
+      if (res) {
+        activeResolvedUrl = res.url;
+        CERTIFICATE_IMAGE = res.url;
+        templateImg = res.img;
+        applyResolvedImageToDOM(res);
+        return res;
+      }
+    }
+
+    console.warn('⚠️ No active certificate image could be loaded from candidate paths in /Image.');
+    return null;
+  } finally {
+    isResolvingImage = false;
+  }
+}
+
+export function getCertificateImageSrc() {
+  return activeResolvedUrl || CERTIFICATE_IMAGE;
+}
+
+// Initialize the Certificate Generator controls and live preview
 export function initCertificateGenerator() {
   const recipientInput = document.getElementById('recipientInput');
   const displayRecipientName = document.getElementById('displayRecipientName');
@@ -22,6 +231,17 @@ export function initCertificateGenerator() {
   const presetChips = document.querySelectorAll('.chip, .cert-chip');
 
   if (!recipientInput || !displayRecipientName) return;
+
+  // Resolve active certificate image dynamically with cache-busting
+  resolveActiveCertificateImage();
+
+  // Attach auto-recovery onerror handler on preview image
+  const certBgEl = document.getElementById('certificateBg');
+  if (certBgEl) {
+    certBgEl.onerror = () => {
+      resolveActiveCertificateImage(true);
+    };
+  }
 
   recipientInput.addEventListener('keydown', (event) => {
     if (event.key === ' ') {
@@ -60,42 +280,34 @@ export function initCertificateGenerator() {
     }
   });
 
-  // Pre-load background template image
-  if (!templateImg) {
-    templateImg = new Image();
-    templateImg.crossOrigin = 'anonymous';
-
-    if (typeof TEMPLATE_BASE64 !== 'undefined' && TEMPLATE_BASE64) {
-      templateImg.src = TEMPLATE_BASE64;
-    } else {
-      templateImg.src = '/Image/Image.jpeg';
-    }
-  }
-
   function updateCertificateName() {
     const rawValue = recipientInput.value;
-    const name = rawValue.trim() !== '' ? rawValue.trim() : 'NAME';
+    const name = rawValue.trim() !== '' ? rawValue.trim() : 'Jatin Verma';
 
-    displayRecipientName.textContent = name.toUpperCase();
+    displayRecipientName.textContent = name;
 
     if (fontSelect) {
       displayRecipientName.style.fontFamily = fontSelect.value;
+    } else {
+      displayRecipientName.style.fontFamily = "'Shrikhand', cursive, serif";
     }
 
     if (colorPicker) {
       displayRecipientName.style.color = colorPicker.value;
       if (colorHex) colorHex.textContent = colorPicker.value.toLowerCase();
+    } else {
+      displayRecipientName.style.color = '#fb4d3d';
     }
 
     const length = name.length;
     if (length <= 14) {
-      displayRecipientName.style.fontSize = 'clamp(18px, 4.2vw, 62px)';
+      displayRecipientName.style.fontSize = 'clamp(18px, 5.2vw, 64px)';
     } else if (length <= 22) {
-      displayRecipientName.style.fontSize = 'clamp(15px, 3.4vw, 48px)';
+      displayRecipientName.style.fontSize = 'clamp(15px, 4.0vw, 48px)';
     } else if (length <= 30) {
-      displayRecipientName.style.fontSize = 'clamp(12px, 2.6vw, 36px)';
+      displayRecipientName.style.fontSize = 'clamp(12px, 3.0vw, 36px)';
     } else {
-      displayRecipientName.style.fontSize = 'clamp(10px, 2vw, 26px)';
+      displayRecipientName.style.fontSize = 'clamp(10px, 2.2vw, 26px)';
     }
   }
 
@@ -116,7 +328,8 @@ export function initCertificateGenerator() {
     const rawValue = recipientInput.value.trim();
     if (!rawValue) {
       if (validationMsgEl) {
-        validationMsgEl.textContent = 'Recipient Name is required for generating certificate.';
+        validationMsgEl.textContent =
+          'Recipient Name is required for generating certificate.';
         validationMsgEl.classList.remove('hidden');
       } else {
         alert('Recipient Name is required for generating certificate.');
@@ -125,8 +338,10 @@ export function initCertificateGenerator() {
       return;
     }
 
-    const selectedFont = fontSelect ? fontSelect.value : "'Cinzel', serif";
-    const selectedColor = colorPicker ? colorPicker.value : '#ca7d08';
+    const selectedFont = fontSelect
+      ? fontSelect.value
+      : "'Shrikhand', cursive, serif";
+    const selectedColor = colorPicker ? colorPicker.value : '#fb4d3d';
 
     if (!selectedFont) {
       if (validationMsgEl) {
@@ -152,7 +367,7 @@ export function initCertificateGenerator() {
       }
     };
 
-    const name = rawValue.toUpperCase();
+    const name = rawValue;
     isDownloading = true;
     currentBtn.disabled = true;
     currentBtn.innerHTML = `
@@ -163,45 +378,63 @@ export function initCertificateGenerator() {
     `;
 
     try {
-      // Ensure background image is fully loaded
-      if (!templateImg.complete || templateImg.naturalWidth === 0) {
-        await new Promise((resolve, reject) => {
-          templateImg.onload = resolve;
-          templateImg.onerror = () => reject(new Error('Failed to load certificate template background image.'));
-          setTimeout(resolve, 1500);
-        });
+      // Ensure we have active resolved template image
+      const resolved = await resolveActiveCertificateImage();
+      const currentImage = resolved ? resolved.img : templateImg;
+
+      if (!currentImage || !currentImage.complete || currentImage.naturalWidth === 0) {
+        throw new Error('Failed to load active certificate template image.');
       }
 
-      currentCanvas.width = 1600;
-      currentCanvas.height = 1131;
+      if (document.fonts && document.fonts.load) {
+        try {
+          const fontFamilyName = selectedFont.split(',')[0].replace(/['"]/g, '');
+          await document.fonts.load(`120px "${fontFamilyName}"`);
+        } catch (_) {}
+      }
 
-      ctx.clearRect(0, 0, 1600, 1131);
-      ctx.drawImage(templateImg, 0, 0, 1600, 1131);
+      const exportWidth = currentImage.naturalWidth || 2048;
+      const exportHeight = currentImage.naturalHeight || 1446;
 
-      let fontSize = 82;
+      currentCanvas.width = exportWidth;
+      currentCanvas.height = exportHeight;
+
+      ctx.clearRect(0, 0, exportWidth, exportHeight);
+      ctx.drawImage(currentImage, 0, 0, exportWidth, exportHeight);
+
+      // Name position percentage matching preview overlay (50% X, 46.25% Y)
+      const posX = exportWidth * 0.5;
+      const posY = exportHeight * 0.4625;
+
+      let fontSize = Math.round(exportHeight * (120 / 1446));
       if (name.length > 14) {
-        fontSize = Math.max(30, Math.round(82 * (14 / name.length)));
+        fontSize = Math.max(
+          Math.round(exportHeight * (40 / 1446)),
+          Math.round(fontSize * (14 / name.length))
+        );
       }
 
       ctx.save();
-      ctx.font = `800 ${fontSize}px ${selectedFont}`;
+      ctx.font = `${fontSize}px ${selectedFont}`;
       ctx.fillStyle = selectedColor;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(name, 1000, 565);
+      ctx.fillText(name, posX, posY);
       ctx.restore();
 
-      // Generate PNG and trigger browser download
       let dataURL = '';
       try {
         dataURL = currentCanvas.toDataURL('image/png', 1.0);
       } catch (e) {
         if (typeof html2canvas !== 'undefined') {
-          const canvasEl = await html2canvas(document.getElementById('certificateWrapper'), {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: null,
-          });
+          const canvasEl = await html2canvas(
+            document.getElementById('certificateWrapper'),
+            {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: null,
+            }
+          );
           dataURL = canvasEl.toDataURL('image/png');
         }
       }
@@ -220,16 +453,15 @@ export function initCertificateGenerator() {
     } catch (err) {
       console.error('Error generating certificate:', err);
       if (validationMsgEl) {
-        validationMsgEl.textContent = err.message || 'Failed to generate certificate PNG. Please try again.';
+        validationMsgEl.textContent =
+          err.message || 'Failed to generate certificate PNG. Please try again.';
         validationMsgEl.classList.remove('hidden');
       }
     } finally {
-      // ALWAYS restore button to normal state
       resetBtnState();
     }
   }
 
-  // Bind event listeners only ONCE
   if (!isGeneratorInitialized) {
     isGeneratorInitialized = true;
 
@@ -271,6 +503,7 @@ export function initCertificateGenerator() {
   updateCertificateName();
 }
 
+// Set recipient name programmatically (e.g. from backend/admin records)
 export function setCertificateRecipient(name) {
   const recipientInput = document.getElementById('recipientInput');
   const validationMsgEl = document.getElementById('certValidationMessage');
@@ -284,8 +517,17 @@ export function setCertificateRecipient(name) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('recipientInput')) {
-    initCertificateGenerator();
+// Auto-initialize when document is ready
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (document.getElementById('recipientInput')) {
+        initCertificateGenerator();
+      }
+    });
+  } else {
+    if (document.getElementById('recipientInput')) {
+      initCertificateGenerator();
+    }
   }
-});
+}

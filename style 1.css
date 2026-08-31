@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Shrikhand&display=swap');
+
 /* Modern Reset & Design System */
 :root {
   --bg-dark: #0b1329;
@@ -11,7 +13,7 @@
   --input-bg: #131c31;
   --input-border: #2e3d5b;
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-cert-name: 'Cinzel', serif;
+  --font-cert-name: 'Shrikhand', cursive, serif;
 }
 
 *, *::before, *::after {
@@ -323,7 +325,7 @@ body {
   width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  aspect-ratio: 1600 / 1131;
+  aspect-ratio: 1024 / 723;
   background-color: #ffffff;
   border-radius: 12px;
   overflow: hidden;
@@ -342,10 +344,10 @@ body {
 /* Recipient Name Overlay */
 .overlay-name-container {
   position: absolute;
-  top: 40.5%;
-  left: 29.5%;
-  width: 65%;
-  height: 19%;
+  top: 41.5%;
+  left: 10%;
+  width: 80%;
+  height: 9.5%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -356,14 +358,14 @@ body {
 
 .display-name {
   font-family: var(--font-cert-name);
-  font-weight: 800;
-  color: #ca7d08; /* Golden-orange matching "OF RECOGNITION" */
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 400;
+  color: #fb4d3d;
+  letter-spacing: 0em;
   margin: 0;
-  line-height: 1.1;
+  padding: 0;
+  line-height: 1;
   white-space: nowrap;
-  font-size: clamp(18px, 4.2vw, 62px);
+  font-size: clamp(18px, 5.2vw, 64px);
   text-align: center;
 }
 
