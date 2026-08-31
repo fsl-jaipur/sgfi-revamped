@@ -5,29 +5,49 @@ const PLAYER_PHOTO_FOLDER = 'sgfi player photos';
 
 const isValidAadhaar = (value) => /^\d{12}$/.test(String(value || '').trim());
 
+const trimString = (value) => String(value ?? '').trim();
+
 const normalizePlayerPayload = (payload) => ({
-  serial_no: payload.serial_no,
-  player_name: payload.player_name,
-  aadhaar_number: payload.aadhaar_number,
-  game: payload.game,
-  age_group: payload.age_group || 'U-19',
-  position: payload.position || 'REGISTERED PARTICIPANT',
-  state: payload.state || 'RAJASTHAN',
-  tournament_name: payload.tournament_name || 'NATIONAL SCHOOL GAMES 2026',
-  organised_at: payload.organised_at || 'SGFI SPORTS COMPLEX',
-  venue: payload.venue || 'MAIN STADIUM',
-  player_photo: payload.player_photo || '',
+  serial_no: trimString(payload.serial_no),
+  player_name: trimString(payload.player_name),
+  aadhaar_number: trimString(payload.aadhaar_number),
+  game: trimString(payload.game),
+  age_group: trimString(payload.age_group) || 'U-19',
+  position: trimString(payload.position) || 'REGISTERED PARTICIPANT',
+  state: trimString(payload.state) || 'RAJASTHAN',
+  tournament_name: trimString(payload.tournament_name) || 'NATIONAL SCHOOL GAMES 2026',
+  organised_at: trimString(payload.organised_at) || 'SGFI SPORTS COMPLEX',
+  venue: trimString(payload.venue) || 'MAIN STADIUM',
+  player_photo: trimString(payload.player_photo),
 });
 
 const validatePlayerPayload = (payload) => {
   const { player_name, aadhaar_number, game, serial_no } = payload;
 
   if (!player_name || !aadhaar_number || !game || !serial_no) {
-    return 'Serial No, Player Name, Aadhaar Number, and Game are required.';
+    return 'Serial No, Player Name, Aadhaar Number, and Game are required and cannot be blank or space-only.';
   }
 
-  if (!isValidAadhaar(aadhaar_number)) {
-    return 'Aadhaar number must be exactly 12 digits.';
+  if (!/^\d{12}$/.test(aadhaar_number)) {
+    return 'Aadhaar number must contain exactly 12 numeric digits (0-9).';
+  }
+
+  const fieldsToCheck = [
+    { name: 'Player Name', val: payload.player_name },
+    { name: 'Serial No', val: payload.serial_no },
+    { name: 'Game', val: payload.game },
+    { name: 'Age Category', val: payload.age_group },
+    { name: 'Position / Medal', val: payload.position },
+    { name: 'State Unit', val: payload.state },
+    { name: 'Tournament', val: payload.tournament_name },
+    { name: 'Organised At', val: payload.organised_at },
+    { name: 'Venue', val: payload.venue },
+  ];
+
+  for (const field of fieldsToCheck) {
+    if (field.val.length > 50) {
+      return `${field.name} cannot exceed 50 characters.`;
+    }
   }
 
   return '';

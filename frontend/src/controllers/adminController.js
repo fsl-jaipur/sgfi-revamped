@@ -14,6 +14,49 @@ const escapeHtml = (value) =>
 
 const cleanAadhaar = (value) => String(value || '').replace(/\D/g, '');
 
+const preventLeadingSpaces = (input) => {
+  if (!input) return;
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === ' ') {
+      const pos = input.selectionStart;
+      const val = input.value;
+
+      // Block space if input is empty, whitespace-only, or cursor is at position 0
+      if (pos === 0 || !val.trim()) {
+        event.preventDefault();
+        return;
+      }
+
+      // Block space if adjacent character (before or after cursor) is already a space
+      if (val.charAt(pos - 1) === ' ' || val.charAt(pos) === ' ') {
+        event.preventDefault();
+        return;
+      }
+    }
+  });
+
+  const sanitizeSpaces = () => {
+    let val = input.value;
+    val = val.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+    if (input.value !== val) {
+      input.value = val;
+    }
+  };
+
+  input.addEventListener('input', sanitizeSpaces);
+
+  input.addEventListener('paste', () => {
+    setTimeout(sanitizeSpaces, 0);
+  });
+
+  input.addEventListener('blur', () => {
+    if (input.value) {
+      input.value = input.value.trim();
+    }
+  });
+};
+
 const redirectToLogin = async () => {
   try {
     await fetch(`${BACKEND_URL}/api/auth/logout`, {
@@ -115,6 +158,9 @@ const initLoginPage = async () => {
   const togglePasswordBtn = qs('#toggle-password');
   const errorEl = qs('#admin-login-error');
   const submitBtn = qs('#admin-login-submit');
+
+  preventLeadingSpaces(usernameInput);
+  preventLeadingSpaces(passwordInput);
 
   const clearLoginForm = () => {
     if (form) form.reset();
@@ -303,6 +349,9 @@ const initDashboardPage = async () => {
     player_photo: qs('#admin-player-photo'),
   };
 
+  preventLeadingSpaces(searchInput);
+  Object.values(fields).forEach(preventLeadingSpaces);
+
   const destroyDataTable = () => {
     if (!state.dataTable) return;
     state.dataTable.destroy();
@@ -406,10 +455,14 @@ const initDashboardPage = async () => {
     }
 
     rowsEl.innerHTML = state.players
-      .map((player) => {
+      .map((player, index) => {
         const id = escapeHtml(player._id);
+        const rowNum = (state.page - 1) * state.limit + index + 1;
         return `
           <tr>
+            <td>
+              <strong>${rowNum}</strong>
+            </td>
             <td>
               <strong>${escapeHtml(player.player_name)}</strong>
             </td>
@@ -431,6 +484,12 @@ const initDashboardPage = async () => {
 
     initDataTable();
   };
+
+  if (fields.aadhaar_number) {
+    fields.aadhaar_number.addEventListener('input', () => {
+      fields.aadhaar_number.value = fields.aadhaar_number.value.replace(/\D/g, '').slice(0, 12);
+    });
+  }
 
   const loadPlayers = async (page = 1) => {
     statusEl.textContent = `Loading page ${page}...`;
@@ -500,21 +559,42 @@ const initDashboardPage = async () => {
   };
 
   const buildPlayerFormData = () => {
-    const aadhaar = cleanAadhaar(fields.aadhaar_number.value);
+    const playerName = fields.player_name.value.trim();
+    const serialNo = fields.serial_no.value.trim();
+    const game = fields.game.value.trim();
+    const aadhaar = fields.aadhaar_number.value.trim().replace(/\D/g, '');
 
-    if (!fields.player_name.value.trim() || !fields.serial_no.value.trim() || !fields.game.value.trim()) {
-      throw new Error('Serial No, Player Name, and Game are required.');
+    if (!playerName || !serialNo || !game || !aadhaar) {
+      throw new Error('Serial No, Player Name, Aadhaar Number, and Game are required and cannot be blank or space-only.');
     }
 
     if (!/^\d{12}$/.test(aadhaar)) {
-      throw new Error('Aadhaar number must be exactly 12 digits.');
+      throw new Error('Aadhaar number must contain exactly 12 numeric digits (0-9).');
+    }
+
+    const fieldsToCheck = [
+      { name: 'Player Name', val: playerName },
+      { name: 'Serial No', val: serialNo },
+      { name: 'Game', val: game },
+      { name: 'Age Category', val: fields.age_group.value.trim() },
+      { name: 'Position / Medal', val: fields.position.value.trim() },
+      { name: 'State Unit', val: fields.state.value.trim() },
+      { name: 'Tournament', val: fields.tournament_name.value.trim() },
+      { name: 'Organised At', val: fields.organised_at.value.trim() },
+      { name: 'Venue', val: fields.venue.value.trim() },
+    ];
+
+    for (const field of fieldsToCheck) {
+      if (field.val.length > 50) {
+        throw new Error(`${field.name} cannot exceed 50 characters.`);
+      }
     }
 
     const formData = new FormData();
-    formData.append('player_name', fields.player_name.value.trim());
+    formData.append('player_name', playerName);
     formData.append('aadhaar_number', aadhaar);
-    formData.append('serial_no', fields.serial_no.value.trim());
-    formData.append('game', fields.game.value.trim());
+    formData.append('serial_no', serialNo);
+    formData.append('game', game);
     formData.append('age_group', fields.age_group.value.trim() || 'U-19');
     formData.append('position', fields.position.value.trim() || 'PARTICIPANT');
     formData.append('state', fields.state.value.trim() || 'RAJASTHAN');

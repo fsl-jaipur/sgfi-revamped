@@ -74,6 +74,7 @@
           <table id="admin-players-table" class="data-table admin-data-table">
             <thead>
               <tr>
+                <th scope="col">No.</th>
                 <th scope="col">Player</th>
                 <th scope="col">Aadhaar</th>
                 <th scope="col">Game</th>
@@ -102,52 +103,52 @@
 
           <div class="sm:col-span-2">
             <label class="field-label" for="admin-player-name">Player Name</label>
-            <input class="field-input" type="text" id="admin-player-name" required />
+            <input class="field-input" type="text" id="admin-player-name" maxlength="50" required />
           </div>
 
           <div>
             <label class="field-label" for="admin-aadhaar-number">Aadhaar Number</label>
-            <input class="field-input" type="text" inputmode="numeric" maxlength="14" id="admin-aadhaar-number" required />
+            <input class="field-input" type="text" inputmode="numeric" maxlength="12" id="admin-aadhaar-number" placeholder="12-digit number" required />
           </div>
 
           <div>
             <label class="field-label" for="admin-serial-no">Serial No</label>
-            <input class="field-input" type="text" id="admin-serial-no" required />
+            <input class="field-input" type="text" id="admin-serial-no" maxlength="50" required />
           </div>
 
           <div>
             <label class="field-label" for="admin-game">Game</label>
-            <input class="field-input" type="text" id="admin-game" required />
+            <input class="field-input" type="text" id="admin-game" maxlength="50" required />
           </div>
 
           <div>
             <label class="field-label" for="admin-age-group">Age Category</label>
-            <input class="field-input" type="text" id="admin-age-group" value="U-19" />
+            <input class="field-input" type="text" id="admin-age-group" maxlength="50" value="U-19" />
           </div>
 
           <div>
             <label class="field-label" for="admin-position">Position / Medal</label>
-            <input class="field-input" type="text" id="admin-position" value="PARTICIPANT" />
+            <input class="field-input" type="text" id="admin-position" maxlength="50" value="PARTICIPANT" />
           </div>
 
           <div>
             <label class="field-label" for="admin-state">State Unit</label>
-            <input class="field-input" type="text" id="admin-state" value="RAJASTHAN" />
+            <input class="field-input" type="text" id="admin-state" maxlength="50" value="RAJASTHAN" />
           </div>
 
           <div class="sm:col-span-2">
             <label class="field-label" for="admin-tournament-name">Tournament</label>
-            <input class="field-input" type="text" id="admin-tournament-name" value="NATIONAL SCHOOL GAMES 2026" />
+            <input class="field-input" type="text" id="admin-tournament-name" maxlength="50" value="NATIONAL SCHOOL GAMES 2026" />
           </div>
 
           <div>
             <label class="field-label" for="admin-organised-at">Organised At</label>
-            <input class="field-input" type="text" id="admin-organised-at" value="SGFI SPORTS COMPLEX" />
+            <input class="field-input" type="text" id="admin-organised-at" maxlength="50" value="SGFI SPORTS COMPLEX" />
           </div>
 
           <div>
             <label class="field-label" for="admin-venue">Venue</label>
-            <input class="field-input" type="text" id="admin-venue" value="MAIN STADIUM" />
+            <input class="field-input" type="text" id="admin-venue" maxlength="50" value="MAIN STADIUM" />
           </div>
 
           <div class="sm:col-span-2">

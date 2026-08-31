@@ -10,15 +10,21 @@ document.addEventListener("DOMContentLoaded", () => {
     import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
   const API_URL = `${BACKEND_URL}/api/players/search`;
 
+  aadhaarInput.addEventListener("input", () => {
+    aadhaarInput.value = aadhaarInput.value.replace(/\D/g, "").slice(0, 12);
+    if (aadhaarError) aadhaarError.classList.add("hidden");
+  });
+
   searchForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const rawVal = aadhaarInput.value.trim().replace(/\D/g, "");
 
     if (!/^\d{12}$/.test(rawVal)) {
       if (aadhaarError) {
-        aadhaarError.textContent = "Please enter a valid 12-digit Aadhaar number.";
+        aadhaarError.textContent = "Aadhaar number must contain exactly 12 numeric digits (0-9).";
         aadhaarError.classList.remove("hidden");
       }
+      aadhaarInput.focus();
       return;
     }
 

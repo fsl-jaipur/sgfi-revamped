@@ -23,6 +23,43 @@ export function initCertificateGenerator() {
 
   if (!recipientInput || !displayRecipientName) return;
 
+  recipientInput.addEventListener('keydown', (event) => {
+    if (event.key === ' ') {
+      const pos = recipientInput.selectionStart;
+      const val = recipientInput.value;
+
+      if (pos === 0 || !val.trim()) {
+        event.preventDefault();
+        return;
+      }
+
+      if (val.charAt(pos - 1) === ' ' || val.charAt(pos) === ' ') {
+        event.preventDefault();
+        return;
+      }
+    }
+  });
+
+  const sanitizeCertInput = () => {
+    let val = recipientInput.value;
+    val = val.replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+    if (recipientInput.value !== val) {
+      recipientInput.value = val;
+    }
+  };
+
+  recipientInput.addEventListener('input', sanitizeCertInput);
+
+  recipientInput.addEventListener('paste', () => {
+    setTimeout(sanitizeCertInput, 0);
+  });
+
+  recipientInput.addEventListener('blur', () => {
+    if (recipientInput.value) {
+      recipientInput.value = recipientInput.value.trim();
+    }
+  });
+
   // Pre-load background template image
   if (!templateImg) {
     templateImg = new Image();
