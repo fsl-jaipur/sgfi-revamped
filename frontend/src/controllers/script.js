@@ -1,5 +1,6 @@
 // ============================================================================
-// DYNAMIC CERTIFICATE GENERATOR & IMAGE RESOLVER (SINGLE SOURCE OF TRUTH)
+// DYNAMIC CERTIFICATE GENERATOR, IMAGE RESOLVER & NAME POSITION EDITOR
+// SINGLE SOURCE OF TRUTH FOR CERTIFICATE TEMPLATE & RECIPIENT COORDINATES
 // ============================================================================
 
 // 1. Dynamic Image Discovery via Vite Glob (Build/Dev time discovery of any filename/extension)
@@ -78,6 +79,82 @@ function getCandidateUrls() {
   return candidates;
 }
 
+// ============================================================================
+// POSITION & CERTIFICATE STORAGE (SINGLE SOURCE OF TRUTH)
+// ============================================================================
+export const DEFAULT_POSITION = { x: 50.0, y: 46.25 };
+export const STORAGE_KEY = 'sgfi_cert_name_position';
+export const ACTIVE_CERT_STORAGE_KEY = 'sgfi_active_certificate_url';
+
+let currentPosition = { ...DEFAULT_POSITION };
+let isEditorMode = false;
+let isDragging = false;
+
+// Retrieve saved percentage position from persistent localStorage
+export function getCertificateNamePosition() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (
+        typeof parsed.x === 'number' &&
+        typeof parsed.y === 'number' &&
+        !isNaN(parsed.x) &&
+        !isNaN(parsed.y)
+      ) {
+        return {
+          x: Math.round(Math.max(0, Math.min(100, parsed.x)) * 100) / 100,
+          y: Math.round(Math.max(0, Math.min(100, parsed.y)) * 100) / 100,
+        };
+      }
+    }
+  } catch (_) {}
+  return { ...DEFAULT_POSITION };
+}
+
+// Persist percentage position to localStorage and apply live
+export function saveCertificateNamePosition(position) {
+  if (
+    !position ||
+    typeof position.x !== 'number' ||
+    typeof position.y !== 'number' ||
+    isNaN(position.x) ||
+    isNaN(position.y)
+  ) {
+    return false;
+  }
+  const cleanPos = {
+    x: Math.round(Math.max(0, Math.min(100, position.x)) * 100) / 100,
+    y: Math.round(Math.max(0, Math.min(100, position.y)) * 100) / 100,
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cleanPos));
+  } catch (_) {}
+  currentPosition = { ...cleanPos };
+  applyCertificateNamePosition(cleanPos.x, cleanPos.y);
+  return true;
+}
+
+// Reset position to default { x: 50, y: 46.25 }
+export function resetCertificateNamePosition() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (_) {}
+  currentPosition = { ...DEFAULT_POSITION };
+  applyCertificateNamePosition(DEFAULT_POSITION.x, DEFAULT_POSITION.y);
+  return { ...DEFAULT_POSITION };
+}
+
+// Apply percentage coordinates to the DOM overlay container
+export function applyCertificateNamePosition(x, y) {
+  const nameContainer = document.getElementById('nameContainer');
+  if (nameContainer) {
+    nameContainer.style.left = `${x}%`;
+    nameContainer.style.top = `${y}%`;
+    nameContainer.style.transform = 'translate(-50%, -50%)';
+  }
+}
+
 let activeResolvedUrl = null;
 let templateImg = null;
 let isResolvingImage = false;
@@ -85,6 +162,47 @@ let isGeneratorInitialized = false;
 let isDownloading = false;
 
 export let CERTIFICATE_IMAGE = '/Image/Image.jpeg';
+
+// Set active certificate template image from Cloudinary or external URL
+export async function setActiveCertificateUrl(url) {
+  if (!url) return false;
+  try {
+    localStorage.setItem(ACTIVE_CERT_STORAGE_KEY, url);
+  } catch (_) {}
+  activeResolvedUrl = url;
+  CERTIFICATE_IMAGE = url;
+
+  const probe = await probeImage(url);
+  if (probe) {
+    templateImg = probe.img;
+    applyResolvedImageToDOM(probe);
+    return true;
+  } else {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      templateImg = img;
+      applyResolvedImageToDOM({
+        url,
+        fullUrl: url,
+        img,
+        width: img.naturalWidth || 2048,
+        height: img.naturalHeight || 1446,
+      });
+    };
+    img.src = url;
+    return true;
+  }
+}
+
+// Reset active certificate back to default local template
+export async function resetActiveCertificateUrl() {
+  try {
+    localStorage.removeItem(ACTIVE_CERT_STORAGE_KEY);
+  } catch (_) {}
+  activeResolvedUrl = null;
+  return await resolveActiveCertificateImage(true);
+}
 
 const NORMAL_DOWNLOAD_BTN_HTML = `
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -150,7 +268,7 @@ function applyResolvedImageToDOM(resolved) {
   }
 }
 
-// Dynamically resolve and activate the certificate image currently present in the Image folder
+// Dynamically resolve and activate the certificate image (Cloudinary or local template)
 export async function resolveActiveCertificateImage(forceRefresh = false) {
   if (
     activeResolvedUrl &&
@@ -181,6 +299,19 @@ export async function resolveActiveCertificateImage(forceRefresh = false) {
   isResolvingImage = true;
 
   try {
+    // 0. Priority: Check custom uploaded Cloudinary URL in persistent localStorage
+    const customUrl = localStorage.getItem(ACTIVE_CERT_STORAGE_KEY);
+    if (customUrl && !forceRefresh) {
+      const customProbe = await probeImage(customUrl);
+      if (customProbe) {
+        activeResolvedUrl = customProbe.url;
+        CERTIFICATE_IMAGE = customProbe.url;
+        templateImg = customProbe.img;
+        applyResolvedImageToDOM(customProbe);
+        return customProbe;
+      }
+    }
+
     // 1. Fast parallel check of discovered glob URLs
     const globUrls = getDiscoveredGlobUrls();
     if (globUrls.length > 0) {
@@ -219,7 +350,152 @@ export function getCertificateImageSrc() {
   return activeResolvedUrl || CERTIFICATE_IMAGE;
 }
 
-// Initialize the Certificate Generator controls and live preview
+// Switch between Certificate Studio tabs: 'generator', 'position', 'upload'
+export function setCertificateTab(tabName = 'generator') {
+  const nameContainer = document.getElementById('nameContainer');
+  const generatorPanel = document.getElementById('certGeneratorControls');
+  const positionPanel = document.getElementById('certPositionControls');
+  const uploadPanel = document.getElementById('certImageUploadControls');
+  const tabGenerator = document.getElementById('certTabGenerator');
+  const tabPosition = document.getElementById('certTabPositionEditor');
+  const tabUpload = document.getElementById('certTabImageUpload');
+  const modeBadge = document.getElementById('certModeBadge');
+  const savedAlert = document.getElementById('certPosSavedAlert');
+  const uploadAlert = document.getElementById('certUploadAlert');
+
+  if (savedAlert) savedAlert.classList.add('hidden');
+  if (uploadAlert) uploadAlert.classList.add('hidden');
+
+  isEditorMode = tabName === 'position';
+
+  if (tabGenerator) tabGenerator.classList.toggle('active', tabName === 'generator');
+  if (tabPosition) tabPosition.classList.toggle('active', tabName === 'position');
+  if (tabUpload) tabUpload.classList.toggle('active', tabName === 'upload');
+
+  if (generatorPanel) generatorPanel.classList.toggle('hidden', tabName !== 'generator');
+  if (positionPanel) positionPanel.classList.toggle('hidden', tabName !== 'position');
+  if (uploadPanel) uploadPanel.classList.toggle('hidden', tabName !== 'upload');
+
+  const pos = getCertificateNamePosition();
+  currentPosition = { ...pos };
+  applyCertificateNamePosition(pos.x, pos.y);
+
+  const inputX = document.getElementById('certPosX');
+  const inputY = document.getElementById('certPosY');
+  const liveBadge = document.getElementById('posLiveBadge');
+
+  if (inputX) inputX.value = pos.x.toFixed(2);
+  if (inputY) inputY.value = pos.y.toFixed(2);
+  if (liveBadge) liveBadge.textContent = `X: ${pos.x.toFixed(1)}% | Y: ${pos.y.toFixed(1)}%`;
+
+  if (tabName === 'position') {
+    if (nameContainer) nameContainer.classList.add('is-draggable');
+    if (modeBadge) {
+      modeBadge.textContent = '🎯 Drag Mode Active';
+      modeBadge.classList.add('cert-badge-active');
+    }
+  } else if (tabName === 'upload') {
+    if (nameContainer) nameContainer.classList.remove('is-draggable', 'is-dragging');
+    if (modeBadge) {
+      modeBadge.textContent = '🖼️ Template Upload';
+      modeBadge.classList.add('cert-badge-active');
+    }
+  } else {
+    if (nameContainer) nameContainer.classList.remove('is-draggable', 'is-dragging');
+    if (modeBadge) {
+      modeBadge.textContent = 'Live Preview';
+      modeBadge.classList.remove('cert-badge-active');
+    }
+  }
+}
+
+// Alias for backwards compatibility
+export function setCertificateEditorMode(enabled) {
+  setCertificateTab(enabled ? 'position' : 'generator');
+}
+
+// Setup draggable interaction on the recipient name box
+function setupPositionEditorDrag() {
+  const nameContainer = document.getElementById('nameContainer');
+  const certificateWrapper = document.getElementById('certificateWrapper');
+  const inputX = document.getElementById('certPosX');
+  const inputY = document.getElementById('certPosY');
+  const liveBadge = document.getElementById('posLiveBadge');
+
+  if (!nameContainer || !certificateWrapper) return;
+
+  const updateCoordinates = (x, y) => {
+    currentPosition = { x, y };
+    applyCertificateNamePosition(x, y);
+    if (inputX) inputX.value = x.toFixed(2);
+    if (inputY) inputY.value = y.toFixed(2);
+    if (liveBadge) liveBadge.textContent = `X: ${x.toFixed(1)}% | Y: ${y.toFixed(1)}%`;
+  };
+
+  const handlePointerDown = (e) => {
+    // Enable dragging when in editor mode or when clicked directly on draggable name
+    if (!isEditorMode && !e.target.closest('#nameContainer.is-draggable')) return;
+
+    isDragging = true;
+    nameContainer.classList.add('is-dragging');
+    if (e.cancelable) e.preventDefault();
+  };
+
+  const handlePointerMove = (e) => {
+    if (!isDragging) return;
+
+    const rect = certificateWrapper.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    let x = ((clientX - rect.left) / rect.width) * 100;
+    let y = ((clientY - rect.top) / rect.height) * 100;
+
+    x = Math.max(0, Math.min(100, Math.round(x * 100) / 100));
+    y = Math.max(0, Math.min(100, Math.round(y * 100) / 100));
+
+    updateCoordinates(x, y);
+  };
+
+  const handlePointerUp = () => {
+    if (isDragging) {
+      isDragging = false;
+      nameContainer.classList.remove('is-dragging');
+    }
+  };
+
+  nameContainer.addEventListener('mousedown', handlePointerDown);
+  window.addEventListener('mousemove', handlePointerMove);
+  window.addEventListener('mouseup', handlePointerUp);
+
+  nameContainer.addEventListener('touchstart', handlePointerDown, { passive: false });
+  window.addEventListener('touchmove', handlePointerMove, { passive: false });
+  window.addEventListener('touchend', handlePointerUp);
+
+  if (inputX) {
+    inputX.addEventListener('input', () => {
+      const valX = parseFloat(inputX.value);
+      if (!isNaN(valX)) {
+        const cleanX = Math.max(0, Math.min(100, valX));
+        updateCoordinates(cleanX, currentPosition.y);
+      }
+    });
+  }
+
+  if (inputY) {
+    inputY.addEventListener('input', () => {
+      const valY = parseFloat(inputY.value);
+      if (!isNaN(valY)) {
+        const cleanY = Math.max(0, Math.min(100, valY));
+        updateCoordinates(currentPosition.x, cleanY);
+      }
+    });
+  }
+}
+
+// Initialize the Certificate Generator controls, position editor, and live preview
 export function initCertificateGenerator() {
   const recipientInput = document.getElementById('recipientInput');
   const displayRecipientName = document.getElementById('displayRecipientName');
@@ -230,17 +506,294 @@ export function initCertificateGenerator() {
   const colorHex = document.getElementById('colorHex');
   const presetChips = document.querySelectorAll('.chip, .cert-chip');
 
+  // Position Editor Elements
+  const tabGenerator = document.getElementById('certTabGenerator');
+  const tabEditor = document.getElementById('certTabPositionEditor');
+  const btnOpenPositionEditor = document.getElementById('btnOpenPositionEditor');
+  const btnSavePosition = document.getElementById('btnSavePosition');
+  const btnResetPosition = document.getElementById('btnResetPosition');
+  const btnBackToGenerator = document.getElementById('btnBackToGenerator');
+  const btnCenterHorizontal = document.getElementById('btnCenterHorizontal');
+  const certPosSavedAlert = document.getElementById('certPosSavedAlert');
+
   if (!recipientInput || !displayRecipientName) return;
 
-  // Resolve active certificate image dynamically with cache-busting
+  // 1. Load and apply persistent percentage position
+  const savedPos = getCertificateNamePosition();
+  currentPosition = { ...savedPos };
+  applyCertificateNamePosition(savedPos.x, savedPos.y);
+
+  // 2. Resolve active certificate image dynamically with cache-busting
   resolveActiveCertificateImage();
 
-  // Attach auto-recovery onerror handler on preview image
+  // 3. Attach auto-recovery onerror handler on preview image
   const certBgEl = document.getElementById('certificateBg');
   if (certBgEl) {
     certBgEl.onerror = () => {
       resolveActiveCertificateImage(true);
     };
+  }
+
+  // 4. Setup drag & drop for position editor
+  setupPositionEditorDrag();
+
+// Setup certificate image uploader to Cloudinary
+function setupCertificateImageUploader() {
+  const fileInput = document.getElementById('certImageFileInput');
+  const btnChoose = document.getElementById('btnChooseCertFile');
+  const dropzone = document.getElementById('certFileDropzone');
+  const dropzonePrompt = document.getElementById('certDropzonePrompt');
+  const selectedFileCard = document.getElementById('certSelectedFileCard');
+  const previewThumb = document.getElementById('certLocalPreviewImg');
+  const fileNameEl = document.getElementById('certSelectedFileName');
+  const fileSizeEl = document.getElementById('certSelectedFileSize');
+  const btnRemove = document.getElementById('btnRemoveSelectedFile');
+  const btnUpload = document.getElementById('btnUploadCertImage');
+  const btnReset = document.getElementById('btnResetDefaultCert');
+  const btnBack = document.getElementById('btnBackFromUpload');
+  const alertEl = document.getElementById('certUploadAlert');
+  const btnOpenUploadTab = document.getElementById('btnOpenImageUploadTab');
+  const tabUpload = document.getElementById('certTabImageUpload');
+
+  let selectedFile = null;
+
+  const showUploadMessage = (text, type = 'success') => {
+    if (!alertEl) return;
+    alertEl.textContent = text;
+    alertEl.className = `admin-alert admin-alert-${type} mb-3 text-xs`;
+    alertEl.classList.remove('hidden');
+  };
+
+  const clearUploadMessage = () => {
+    if (!alertEl) return;
+    alertEl.textContent = '';
+    alertEl.classList.add('hidden');
+  };
+
+  const resetFileSelection = () => {
+    selectedFile = null;
+    if (fileInput) fileInput.value = '';
+    if (selectedFileCard) selectedFileCard.classList.add('hidden');
+    if (dropzonePrompt) dropzonePrompt.classList.remove('hidden');
+    if (previewThumb) previewThumb.src = '';
+    if (btnUpload) btnUpload.disabled = true;
+  };
+
+  const handleFileSelected = (file) => {
+    clearUploadMessage();
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const ext = (file.name || '').split('.').pop().toLowerCase();
+    const allowedExts = ['png', 'jpg', 'jpeg', 'webp'];
+
+    if (!allowedTypes.includes(file.type) && !allowedExts.includes(ext)) {
+      showUploadMessage('Invalid file format. Only PNG, JPG, JPEG, and WEBP images are supported.', 'error');
+      resetFileSelection();
+      return;
+    }
+
+    const maxBytes = 10 * 1024 * 1024; // 10 MB
+    if (file.size > maxBytes) {
+      showUploadMessage('File size exceeds the 10 MB limit. Please select a smaller image.', 'error');
+      resetFileSelection();
+      return;
+    }
+
+    selectedFile = file;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      if (previewThumb) previewThumb.src = e.target.result;
+      if (fileNameEl) fileNameEl.textContent = file.name;
+      if (fileSizeEl) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        fileSizeEl.textContent = `${sizeMB} MB`;
+      }
+      if (dropzonePrompt) dropzonePrompt.classList.add('hidden');
+      if (selectedFileCard) selectedFileCard.classList.remove('hidden');
+      if (btnUpload) btnUpload.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  if (btnChoose && fileInput) {
+    btnChoose.addEventListener('click', (e) => {
+      e.preventDefault();
+      fileInput.click();
+    });
+  }
+
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileSelected(e.target.files[0]);
+      }
+    });
+  }
+
+  if (btnRemove) {
+    btnRemove.addEventListener('click', (e) => {
+      e.preventDefault();
+      resetFileSelection();
+    });
+  }
+
+  if (dropzone) {
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('drag-over');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('drag-over');
+      });
+    });
+
+    dropzone.addEventListener('drop', (e) => {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileSelected(e.dataTransfer.files[0]);
+      }
+    });
+  }
+
+  if (btnUpload) {
+    btnUpload.addEventListener('click', async () => {
+      if (!selectedFile) {
+        showUploadMessage('Please select an image file first.', 'error');
+        return;
+      }
+
+      btnUpload.disabled = true;
+      const origHtml = btnUpload.innerHTML;
+      btnUpload.innerHTML = `
+        <svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+          <circle cx="12" cy="12" r="10" stroke-dasharray="32" stroke-dashoffset="10"></circle>
+        </svg>
+        Uploading to Cloudinary...
+      `;
+
+      try {
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+        formData.append('folder', 'sgfi_certificates');
+
+        const backendBase = import.meta.env?.VITE_BACKEND_URL || 'http://localhost:5000';
+        const response = await fetch(`${backendBase}/api/upload`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || !data.success || !data.url) {
+          throw new Error(data.message || 'Failed to upload certificate to Cloudinary.');
+        }
+
+        await setActiveCertificateUrl(data.url);
+
+        showUploadMessage('✓ Certificate image uploaded to Cloudinary & activated successfully!', 'success');
+        resetFileSelection();
+      } catch (error) {
+        console.error('Certificate upload error:', error);
+        showUploadMessage(error.message || 'Upload failed. Please ensure you are logged in as admin.', 'error');
+      } finally {
+        btnUpload.disabled = !selectedFile;
+        btnUpload.innerHTML = origHtml;
+      }
+    });
+  }
+
+  if (btnReset) {
+    btnReset.addEventListener('click', async () => {
+      const confirmed = window.confirm('Reset the active certificate back to the local default template?');
+      if (!confirmed) return;
+
+      await resetActiveCertificateUrl();
+      showUploadMessage('✓ Active certificate restored to default template.', 'success');
+      resetFileSelection();
+    });
+  }
+
+  if (btnBack) {
+    btnBack.addEventListener('click', () => setCertificateTab('generator'));
+  }
+
+  if (btnOpenUploadTab) {
+    btnOpenUploadTab.addEventListener('click', () => setCertificateTab('upload'));
+  }
+
+  if (tabUpload) {
+    tabUpload.addEventListener('click', () => setCertificateTab('upload'));
+  }
+}
+
+  // Tab & mode switching
+  if (tabGenerator) {
+    tabGenerator.addEventListener('click', () => setCertificateTab('generator'));
+  }
+  if (tabEditor) {
+    tabEditor.addEventListener('click', () => setCertificateTab('position'));
+  }
+  if (btnOpenPositionEditor) {
+    btnOpenPositionEditor.addEventListener('click', () => setCertificateTab('position'));
+  }
+  if (btnBackToGenerator) {
+    btnBackToGenerator.addEventListener('click', () => setCertificateTab('generator'));
+  }
+
+  // Setup Certificate Image Uploader
+  setupCertificateImageUploader();
+
+  // Quick Center X button
+  if (btnCenterHorizontal) {
+    btnCenterHorizontal.addEventListener('click', () => {
+      currentPosition.x = 50.0;
+      applyCertificateNamePosition(50.0, currentPosition.y);
+      const inputX = document.getElementById('certPosX');
+      if (inputX) inputX.value = '50.00';
+    });
+  }
+
+  // Save Position button
+  if (btnSavePosition) {
+    btnSavePosition.addEventListener('click', () => {
+      saveCertificateNamePosition(currentPosition);
+      if (certPosSavedAlert) {
+        certPosSavedAlert.textContent = `✓ Name position saved successfully! (X: ${currentPosition.x.toFixed(1)}%, Y: ${currentPosition.y.toFixed(1)}%)`;
+        certPosSavedAlert.classList.remove('hidden');
+        setTimeout(() => {
+          if (certPosSavedAlert) certPosSavedAlert.classList.add('hidden');
+        }, 4000);
+      }
+    });
+  }
+
+  // Reset Position button
+  if (btnResetPosition) {
+    btnResetPosition.addEventListener('click', () => {
+      const def = resetCertificateNamePosition();
+      const inputX = document.getElementById('certPosX');
+      const inputY = document.getElementById('certPosY');
+      const liveBadge = document.getElementById('posLiveBadge');
+      if (inputX) inputX.value = def.x.toFixed(2);
+      if (inputY) inputY.value = def.y.toFixed(2);
+      if (liveBadge) liveBadge.textContent = `X: ${def.x.toFixed(1)}% | Y: ${def.y.toFixed(1)}%`;
+      if (certPosSavedAlert) {
+        certPosSavedAlert.textContent = `✓ Position reset to default (X: ${def.x}%, Y: ${def.y}%)`;
+        certPosSavedAlert.classList.remove('hidden');
+        setTimeout(() => {
+          if (certPosSavedAlert) certPosSavedAlert.classList.add('hidden');
+        }, 3000);
+      }
+    });
   }
 
   recipientInput.addEventListener('keydown', (event) => {
@@ -402,9 +955,10 @@ export function initCertificateGenerator() {
       ctx.clearRect(0, 0, exportWidth, exportHeight);
       ctx.drawImage(currentImage, 0, 0, exportWidth, exportHeight);
 
-      // Name position percentage matching preview overlay (50% X, 46.25% Y)
-      const posX = exportWidth * 0.5;
-      const posY = exportHeight * 0.4625;
+      // Single source of truth: Read exact saved position percentage
+      const pos = getCertificateNamePosition();
+      const posX = exportWidth * (pos.x / 100);
+      const posY = exportHeight * (pos.y / 100);
 
       let fontSize = Math.round(exportHeight * (120 / 1446));
       if (name.length > 14) {

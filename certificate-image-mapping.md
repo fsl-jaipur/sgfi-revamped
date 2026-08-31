@@ -1,44 +1,74 @@
-# Dynamic Certificate Image System Documentation
+# Dynamic Certificate Image, Cloudinary Uploader & Name Position Editor Documentation
 
 ## Architecture & How It Works
 
-The certificate system is fully dynamic, format-agnostic, and self-discovering. You can place or replace any certificate template image inside the `Image` folder (`frontend/public/Image/`) without making any code changes in HTML, CSS, or JavaScript.
+The certificate system is fully dynamic, format-agnostic, and self-discovering. You can either:
+1. **Upload a new certificate directly from the Admin Panel** to Cloudinary without touching any project files.
+2. Or place/replace template images inside `frontend/public/Image/`.
+
+---
 
 ### 1. Supported Image Formats
 Any standard image format is supported:
-- `.jpeg` / `.jpg`
 - `.png`
+- `.jpg` / `.jpeg`
 - `.webp`
 - `.svg`
 - `.avif`
 
-### 2. Multi-Tier Dynamic Discovery
-1. **Tier 1 (Vite Glob Discovery)**:
-   - Uses `import.meta.glob` to inspect `public/Image/*.*` at build/dev time.
-   - Any image present in `public/Image/` is automatically discovered regardless of its filename or extension.
-2. **Tier 2 (Runtime Candidate Probing)**:
-   - Probes candidate filenames (`Image`, `Certificate`, `Template`, `cert`, `bg`, etc.) across all standard extensions (`.jpeg`, `.jpg`, `.png`, `.webp`, `.svg`, etc.).
-3. **Tier 3 (Cache-Busting & Live Reload)**:
-   - Generates cache-busting query strings (`?_v=${Date.now()}`) to prevent browser cache retention when replacing certificate images.
+---
+
+### 2. Change Certificate Image from Admin (Cloudinary Integration)
+
+Admins can change the certificate template directly from their PC:
+1. Open **Certificate Studio** in the Admin panel.
+2. Switch to the **"Change Image"** tab.
+3. Click **"Choose File from PC"** (or drag & drop). Supported: `.png`, `.jpg`, `.jpeg`, `.webp` (Max 10 MB).
+4. The selected certificate image appears in an instant thumbnail preview card with filename and size.
+5. Click **"Upload / Change Certificate"**.
+6. The file is uploaded securely to the existing Cloudinary configuration via the protected `/api/upload` endpoint.
+7. The returned Cloudinary URL is automatically stored in `localStorage` under `sgfi_active_certificate_url` and immediately activated across:
+   - **Live HTML Certificate Preview**
+   - **High-Resolution Canvas PNG Export**
+8. **Position Preservation**: The currently saved recipient name position `{ x, y }` is completely preserved.
+9. **Reset Option**: Admins can click **"Reset Default Image"** at any time to restore the bundled local template.
 
 ---
 
-## Dynamic Recipient Name & Positioning
+### 3. Interactive Name Position Editor
 
-- **Configured Name Position**:
-  - Horizontal Center: `50%` (`posX = exportWidth * 0.5`)
-  - Vertical Center: `46.25%` (`posY = exportHeight * 0.4625`)
-  - Font Style: Customizable (Defaults to `'Shrikhand', cursive, serif`)
-  - Font Color: Customizable (Defaults to `#fb4d3d`)
-  - Dynamic Font Sizing: Proportional to image resolution with automatic shrinking for long names.
-
-- **Data Sources**:
-  - **Backend**: In the Admin portal, clicking the Certificate icon on any player automatically populates the recipient's name via `setCertificateRecipient(player.player_name)`.
-  - **Manual Input**: Users can type any custom name directly in the `#recipientInput` field for testing.
+1. Open the **"Set Name Position"** tab in the Certificate Studio.
+2. Drag the sample name with the mouse or touch to place it on the new certificate.
+3. Click **"Save Position"** to persist `{ x, y }` in `localStorage` under `sgfi_cert_name_position`.
 
 ---
 
-## High-Resolution Export
+### 4. Position Coordinate Storage Model
 
-- High-resolution Canvas rendering automatically extracts the natural dimensions of the active certificate background image (`img.naturalWidth` × `img.naturalHeight`).
-- Exports a crisp, unpixelated `.png` download matching the exact layout and typography of the live preview.
+Coordinates are stored as percentages relative to the certificate dimensions:
+
+```json
+{
+  "x": 50.0,
+  "y": 46.25
+}
+```
+
+- `x = 0` → Left edge, `x = 50` → Center, `x = 100` → Right edge
+- `y = 0` → Top edge, `y = 50` → Center, `y = 100` → Bottom edge
+
+---
+
+### 5. Single Source of Truth
+
+Both the live DOM preview and the Canvas export draw from the exact same active image and coordinate configuration:
+
+- **Active Image Source**:
+  1. Priority 1: Cloudinary custom upload stored in `localStorage` (`sgfi_active_certificate_url`)
+  2. Priority 2: Discovered image in `public/Image/*.*`
+  3. Priority 3: Fallback candidate probing
+- **Preview Element**: `left: ${x}%; top: ${y}%; transform: translate(-50%, -50%);`
+- **Canvas Rendering**:
+  - `posX = exportWidth * (x / 100)`
+  - `posY = exportHeight * (y / 100)`
+  - `ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(name, posX, posY);`

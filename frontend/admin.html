@@ -17,10 +17,33 @@
   <link rel="stylesheet" href="/src/css/style.css" />
   <link rel="stylesheet" href="https://cdn.datatables.net/3.0.2/css/dataTables.dataTables.css" />
   <link rel="stylesheet" href="/admin.css" />
+  <style>
+    /* Prevent flash of unauthenticated admin dashboard */
+    html.auth-pending body:not(.auth-verified) .admin-topbar,
+    html.auth-pending body:not(.auth-verified) .admin-dashboard,
+    html.auth-pending body:not(.auth-verified) #cert-modal {
+      display: none !important;
+    }
+  </style>
+  <script>
+    document.documentElement.classList.add('auth-pending');
+  </script>
 </head>
 <body class="admin-shell">
+  <!-- Initial Auth Verification Loader -->
+  <div id="admin-auth-guard" class="admin-auth-guard">
+    <div class="admin-auth-guard-card">
+      <img src="https://studentgames.ind.in/assets/images/main.logo.png" alt="SGFI logo" class="admin-auth-guard-logo" />
+      <div class="admin-auth-guard-spinner"></div>
+      <div>
+        <p class="admin-auth-guard-text">Verifying Admin Session</p>
+        <p class="admin-auth-guard-subtext">Please wait...</p>
+      </div>
+    </div>
+  </div>
+
   <header class="admin-topbar">
-    <a href="admin.html" class="admin-brand" aria-label="SGFI home">
+    <a href="/admin.html" class="admin-brand" aria-label="SGFI home">
       <img src="https://studentgames.ind.in/assets/images/main.logo.png" alt="SGFI logo" class="admin-brand-logo" />
       <span>
         <span class="admin-kicker">Admin Panel</span>
@@ -59,7 +82,19 @@
             <p class="admin-kicker">Database</p>
             <h1 class="admin-section-title">Player Records</h1>
           </div>
-          <button id="admin-new-record" type="button" class="btn btn-secondary admin-small-button">New Record</button>
+          <div class="flex items-center gap-2">
+            <button id="admin-cert-position-btn" type="button" class="btn btn-outline admin-small-button flex items-center gap-1.5" title="Configure certificate template and recipient name position">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="22" y1="12" x2="18" y2="12"></line>
+                <line x1="6" y1="12" x2="2" y2="12"></line>
+                <line x1="12" y1="6" x2="12" y2="2"></line>
+                <line x1="12" y1="22" x2="12" y2="18"></line>
+              </svg>
+              Set Name Position
+            </button>
+            <button id="admin-new-record" type="button" class="btn btn-secondary admin-small-button">New Record</button>
+          </div>
         </div>
 
         <div class="admin-toolbar">
@@ -179,18 +214,47 @@
       <div class="cert-modal-header">
         <div>
           <p class="admin-kicker">Official Document</p>
-          <h2 id="cert-modal-title" class="admin-section-title text-2xl">Certificate Generator</h2>
+          <h2 id="cert-modal-title" class="admin-section-title text-2xl">Certificate Studio</h2>
           <p id="cert-modal-player-subtitle" class="text-xs text-[var(--sgfi-gold)] font-bold mt-1">Generating certificate</p>
         </div>
-        <button type="button" id="cert-modal-close" class="cert-modal-close-btn" aria-label="Close modal">&times;</button>
+        <div class="flex items-center gap-3">
+          <div class="cert-nav-tabs">
+            <button type="button" id="certTabGenerator" class="cert-tab-btn active">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              Generator
+            </button>
+            <button type="button" id="certTabPositionEditor" class="cert-tab-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="22" y1="12" x2="18" y2="12"></line>
+                <line x1="6" y1="12" x2="2" y2="12"></line>
+                <line x1="12" y1="6" x2="12" y2="2"></line>
+                <line x1="12" y1="22" x2="12" y2="18"></line>
+              </svg>
+              Set Name Position
+            </button>
+            <button type="button" id="certTabImageUpload" class="cert-tab-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+              Change Image
+            </button>
+          </div>
+          <button type="button" id="cert-modal-close" class="cert-modal-close-btn" aria-label="Close modal">&times;</button>
+        </div>
       </div>
 
       <div class="cert-modal-body">
         <div class="cert-app-container">
           <!-- Controls + Preview -->
           <div class="cert-main-content">
-            <!-- Controls Panel -->
-            <section class="cert-control-panel">
+            <!-- Generator Controls Panel -->
+            <section class="cert-control-panel" id="certGeneratorControls">
               <div id="certValidationMessage" class="admin-alert admin-alert-error hidden mb-3" role="alert"></div>
 
               <div class="cert-form-group">
@@ -247,18 +311,166 @@
                   Download Certificate
                 </button>
               </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                <button id="btnOpenPositionEditor" type="button" class="cert-btn-editor-link !mt-0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="22" y1="12" x2="18" y2="12"></line>
+                    <line x1="6" y1="12" x2="2" y2="12"></line>
+                    <line x1="12" y1="6" x2="12" y2="2"></line>
+                    <line x1="12" y1="22" x2="12" y2="18"></line>
+                  </svg>
+                  Set Name Position
+                </button>
+
+                <button id="btnOpenImageUploadTab" type="button" class="cert-btn-editor-link !mt-0">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                  </svg>
+                  Change Image
+                </button>
+              </div>
+            </section>
+
+            <!-- Position Editor Controls Panel (Toggled) -->
+            <section class="cert-control-panel hidden" id="certPositionControls">
+              <div class="cert-instruction-card">
+                <div class="flex items-start gap-2.5">
+                  <span class="text-lg">🎯</span>
+                  <div class="text-xs text-[var(--cert-text-main)] leading-relaxed">
+                    <strong>Drag Name to Position:</strong><br>
+                    Drag the sample name directly on the certificate preview to reposition it, or enter exact percentage values below.
+                  </div>
+                </div>
+              </div>
+
+              <div class="cert-coords-grid">
+                <div class="cert-coord-field">
+                  <label for="certPosX" class="cert-subgroup-label">Horizontal (X %):</label>
+                  <div class="cert-input-stepper">
+                    <input type="number" id="certPosX" min="0" max="100" step="0.25" value="50.00" class="cert-field-input text-center">
+                    <span class="cert-stepper-unit">%</span>
+                  </div>
+                  <span class="cert-coord-hint">0% = Left, 50% = Center, 100% = Right</span>
+                </div>
+                <div class="cert-coord-field">
+                  <label for="certPosY" class="cert-subgroup-label">Vertical (Y %):</label>
+                  <div class="cert-input-stepper">
+                    <input type="number" id="certPosY" min="0" max="100" step="0.25" value="46.25" class="cert-field-input text-center">
+                    <span class="cert-stepper-unit">%</span>
+                  </div>
+                  <span class="cert-coord-hint">0% = Top, 50% = Center, 100% = Bottom</span>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 mt-3">
+                <button type="button" id="btnCenterHorizontal" class="cert-btn-secondary text-xs flex-1 py-2">Center X (50%)</button>
+                <button type="button" id="btnResetPosition" class="cert-btn-secondary text-xs flex-1 py-2">Reset Default</button>
+              </div>
+
+              <div class="cert-action-stack mt-4">
+                <button type="button" id="btnSavePosition" class="cert-btn-save">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                  </svg>
+                  Save Position
+                </button>
+                <button type="button" id="btnBackToGenerator" class="cert-btn-secondary text-xs mt-2 py-2 w-full">
+                  Done / Back to Generator
+                </button>
+              </div>
+
+              <div id="certPosSavedAlert" class="admin-alert admin-alert-success hidden mt-3 text-xs" role="alert"></div>
+            </section>
+
+            <!-- Change Certificate Image Panel (Toggled) -->
+            <section class="cert-control-panel hidden" id="certImageUploadControls">
+              <div class="cert-instruction-card">
+                <div class="flex items-start gap-2.5">
+                  <span class="text-lg">🖼️</span>
+                  <div class="text-xs text-[var(--cert-text-main)] leading-relaxed">
+                    <strong>Change Certificate Template:</strong><br>
+                    Select an image from your PC (<code class="text-[var(--sgfi-gold)]">.png, .jpg, .jpeg, .webp</code>). It will upload to Cloudinary and immediately become active.
+                  </div>
+                </div>
+              </div>
+
+              <div id="certUploadAlert" class="admin-alert hidden mb-3 text-xs" role="alert"></div>
+
+              <!-- Dropzone / File Picker -->
+              <div class="cert-file-dropzone" id="certFileDropzone">
+                <input type="file" id="certImageFileInput" accept="image/png,image/jpeg,image/jpg,image/webp" class="hidden" />
+                <div class="cert-dropzone-inner" id="certDropzonePrompt">
+                  <svg class="cert-dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  <div class="text-center">
+                    <button type="button" id="btnChooseCertFile" class="cert-btn-choose">
+                      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path>
+                      </svg>
+                      Choose File from PC
+                    </button>
+                    <p class="cert-dropzone-subtext">or drag & drop image here</p>
+                    <span class="cert-dropzone-hint">PNG, JPG, JPEG, WEBP (Max 10 MB)</span>
+                  </div>
+                </div>
+
+                <!-- Selected File Preview Card -->
+                <div id="certSelectedFileCard" class="cert-selected-file-card hidden">
+                  <div class="cert-file-preview-wrap">
+                    <img id="certLocalPreviewImg" src="" alt="Selected preview" class="cert-file-preview-thumb" />
+                  </div>
+                  <div class="cert-file-meta">
+                    <span id="certSelectedFileName" class="cert-file-name">certificate.png</span>
+                    <span id="certSelectedFileSize" class="cert-file-size">1.2 MB</span>
+                    <span class="cert-file-status-badge">Ready to upload</span>
+                  </div>
+                  <button type="button" id="btnRemoveSelectedFile" class="cert-btn-remove-file" title="Remove selected file">&times;</button>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex flex-col gap-2 mt-4">
+                <button id="btnUploadCertImage" type="button" class="cert-btn-save" disabled>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                  </svg>
+                  Upload / Change Certificate
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                  <button id="btnResetDefaultCert" type="button" class="cert-btn-secondary text-xs py-2">
+                    Reset Default Image
+                  </button>
+                  <button id="btnBackFromUpload" type="button" class="cert-btn-secondary text-xs py-2">
+                    Back to Generator
+                  </button>
+                </div>
+              </div>
             </section>
 
             <!-- Certificate Preview -->
             <section class="cert-preview-section">
               <div class="cert-preview-header">
                 <span class="cert-preview-title">Live Certificate Preview</span>
-                <span class="cert-preview-hint">High Resolution</span>
+                <div class="flex items-center gap-2">
+                  <span id="posLiveBadge" class="cert-preview-coords">X: 50.0% | Y: 46.3%</span>
+                  <span id="certModeBadge" class="cert-preview-hint">Live Preview</span>
+                </div>
               </div>
               <div class="cert-certificate-wrapper" id="certificateWrapper">
                 <img id="certificateBg" alt="Certificate Template" class="cert-certificate-bg">
-                <div class="cert-overlay-name-container" id="nameContainer">
+                <div class="cert-overlay-name-container" id="nameContainer" title="Drag to reposition name">
                   <h3 id="displayRecipientName" class="cert-display-name">Jatin Verma</h3>
+                  <div class="cert-drag-handle-hint">✥ Drag Name</div>
                 </div>
               </div>
             </section>

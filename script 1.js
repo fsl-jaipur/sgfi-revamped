@@ -165,9 +165,18 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.clearRect(0, 0, exportWidth, exportHeight);
       ctx.drawImage(templateImg, 0, 0, exportWidth, exportHeight);
 
-      // Name position percentage matching preview overlay (50% X, 46.25% Y)
-      const posX = exportWidth * 0.5;
-      const posY = exportHeight * 0.4625;
+      const savedPos = (() => {
+        try {
+          const raw = localStorage.getItem('sgfi_cert_name_position');
+          if (raw) {
+            const p = JSON.parse(raw);
+            if (typeof p.x === 'number' && typeof p.y === 'number') return p;
+          }
+        } catch (_) {}
+        return { x: 50, y: 46.25 };
+      })();
+      const posX = exportWidth * (savedPos.x / 100);
+      const posY = exportHeight * (savedPos.y / 100);
 
       let fontSize = Math.round(exportHeight * (120 / 1446));
       if (name.length > 14) {

@@ -6,11 +6,20 @@ export const uploadImage = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No image file uploaded.' });
     }
 
-    const result = await uploadToCloudinary(req.file.buffer, 'sgfi_player_photos');
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!allowedMimeTypes.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image format. Supported formats: .png, .jpg, .jpeg, .webp',
+      });
+    }
+
+    const folder = req.body?.folder || 'sgfi_certificates';
+    const result = await uploadToCloudinary(req.file.buffer, folder);
 
     return res.status(200).json({
       success: true,
-      message: 'Image uploaded successfully to Cloudinary.',
+      message: 'Certificate uploaded successfully to Cloudinary.',
       url: result.secure_url,
       public_id: result.public_id,
     });

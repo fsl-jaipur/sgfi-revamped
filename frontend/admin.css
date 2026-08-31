@@ -620,9 +620,85 @@ div.dt-container .dt-paging .dt-paging-button.disabled:hover {
 
   .cert-modal-header {
     padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .cert-nav-tabs {
+    order: 3;
+    width: 100%;
+    justify-content: center;
   }
 
   .cert-modal-body {
     padding: 12px;
   }
 }
+
+/* ==========================================================================
+   Admin Session Auth Guard & Anti-Flicker Loader
+   ========================================================================== */
+.admin-auth-guard {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    linear-gradient(180deg, rgba(18, 53, 36, 0.08), rgba(250, 246, 236, 0) 320px),
+    var(--sgfi-paper);
+}
+
+.admin-auth-guard-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--sgfi-card);
+  border: 1px solid var(--sgfi-card-line);
+  border-radius: 12px;
+  box-shadow: var(--sgfi-shadow-sm);
+  padding: 36px 28px;
+  width: min(100%, 380px);
+  gap: 16px;
+}
+
+.admin-auth-guard-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  background: var(--sgfi-paper);
+  border: 1px solid var(--sgfi-card-line);
+  border-radius: 10px;
+  padding: 6px;
+}
+
+.admin-auth-guard-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(18, 53, 36, 0.15);
+  border-top-color: var(--sgfi-gold-dark);
+  border-radius: 50%;
+  animation: admin-guard-spin 0.75s linear infinite;
+}
+
+@keyframes admin-guard-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-auth-guard-text {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--sgfi-green-dark);
+  margin: 0;
+}
+
+.admin-auth-guard-subtext {
+  font-size: 0.82rem;
+  color: var(--sgfi-ink-faint);
+  margin: 4px 0 0 0;
+}
+

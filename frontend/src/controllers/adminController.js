@@ -1,4 +1,4 @@
-import { initCertificateGenerator, setCertificateRecipient } from './script.js';
+import { initCertificateGenerator, setCertificateRecipient, setCertificateEditorMode } from './script.js';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
@@ -64,7 +64,7 @@ const redirectToLogin = async () => {
       credentials: 'include',
     });
   } catch (_) {}
-  window.location.replace('admin-login.html');
+  window.location.replace('/admin-login.html');
 };
 
 const apiFetch = async (path, options = {}) => {
@@ -82,8 +82,9 @@ const apiFetch = async (path, options = {}) => {
 
   const data = await response.json().catch(() => ({}));
 
-  if (response.status === 401 && window.location.pathname.endsWith('admin.html')) {
-    window.location.replace('admin-login.html');
+  if (response.status === 401 && (qs('#admin-player-form') || window.location.pathname.includes('admin'))) {
+    window.location.replace('/admin-login.html');
+    return;
   }
 
   if (!response.ok || data.success === false) {
@@ -109,7 +110,7 @@ const clearMessage = (element) => {
 
 // Security check against BFCache / Browser Back button showing protected Admin Panel or cached login state after logout
 window.addEventListener('pageshow', async (event) => {
-  if (window.location.pathname.endsWith('admin-login.html')) {
+  if (qs('#admin-login-form')) {
     const form = qs('#admin-login-form');
     const usernameInput = qs('#admin-username');
     const passwordInput = qs('#admin-password');
@@ -132,7 +133,7 @@ window.addEventListener('pageshow', async (event) => {
     clearMessage(errorEl);
   }
 
-  if (window.location.pathname.endsWith('admin.html')) {
+  if (qs('#admin-player-form')) {
     if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
       window.location.reload();
       return;
@@ -141,10 +142,10 @@ window.addEventListener('pageshow', async (event) => {
       const meRes = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
       const meData = await meRes.json().catch(() => ({}));
       if (!meRes.ok || !meData.success) {
-        window.location.replace('admin-login.html');
+        window.location.replace('/admin-login.html');
       }
     } catch (_) {
-      window.location.replace('admin-login.html');
+      window.location.replace('/admin-login.html');
     }
   }
 });
@@ -187,7 +188,7 @@ const initLoginPage = async () => {
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
       clearLoginForm();
-      window.location.replace('admin.html');
+      window.location.replace('/admin.html');
       return;
     }
   } catch (_) {}
@@ -247,7 +248,7 @@ const initLoginPage = async () => {
       }
 
       clearLoginForm();
-      window.location.replace('admin.html');
+      window.location.replace('/admin.html');
     } catch (error) {
       setMessage(errorEl, error.message || `Unable to connect to ${BACKEND_URL}.`);
     } finally {
@@ -278,6 +279,15 @@ const initDashboardPage = async () => {
     return;
   }
 
+  // Session verified: reveal dashboard UI and remove auth loader guard
+  document.documentElement.classList.remove('auth-pending');
+  document.body.classList.remove('auth-pending');
+  document.body.classList.add('auth-verified');
+  const authGuard = qs('#admin-auth-guard');
+  if (authGuard) {
+    authGuard.remove();
+  }
+
   // Initialize Certificate Generator Modal controller
   initCertificateGenerator();
 
@@ -299,6 +309,21 @@ const initDashboardPage = async () => {
     certModal.addEventListener('click', (event) => {
       if (event.target === certModal) {
         closeCertModal();
+      }
+    });
+  }
+
+  const adminCertPosBtn = qs('#admin-cert-position-btn');
+  if (adminCertPosBtn) {
+    adminCertPosBtn.addEventListener('click', () => {
+      const subtitle = qs('#cert-modal-player-subtitle');
+      if (subtitle) {
+        subtitle.textContent = 'Configure recipient name position on active certificate';
+      }
+      setCertificateEditorMode(true);
+      if (certModal) {
+        certModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
       }
     });
   }
@@ -655,6 +680,7 @@ const initDashboardPage = async () => {
         subtitle.textContent = `Generating certificate for ${player.player_name} (Serial: ${player.serial_no || 'N/A'})`;
       }
       setCertificateRecipient(player.player_name);
+      setCertificateEditorMode(false);
       if (certModal) {
         certModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
