@@ -1,5 +1,6 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements
+let templateImg = null;
+
+export function initCertificateGenerator() {
   const recipientInput = document.getElementById('recipientInput');
   const displayRecipientName = document.getElementById('displayRecipientName');
   const btnClear = document.getElementById('btnClear');
@@ -11,41 +12,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const exportCanvas = document.getElementById('exportCanvas');
   const ctx = exportCanvas ? exportCanvas.getContext('2d') : null;
 
-  // Preload Template Image for Canvas
-  const templateImg = new Image();
+  if (!recipientInput || !displayRecipientName) return;
+
+  templateImg = new Image();
   templateImg.crossOrigin = 'anonymous';
-  
+
   if (typeof TEMPLATE_BASE64 !== 'undefined' && TEMPLATE_BASE64) {
     templateImg.src = TEMPLATE_BASE64;
   } else {
     templateImg.src = '/Image/Image.jpeg';
   }
 
-  // Ensure fonts are loaded before canvas rendering
-  document.fonts?.ready?.then(() => {
-    console.log('Fonts loaded successfully.');
-  });
-
-  // Update Live Preview Name, Font, and Color
   function updateCertificateName() {
     const rawValue = recipientInput.value;
     const name = rawValue.trim() !== '' ? rawValue.trim() : 'NAME';
-    
-    // Set Uppercase main recipient name
+
     displayRecipientName.textContent = name.toUpperCase();
 
-    // Apply selected font style
     if (fontSelect) {
       displayRecipientName.style.fontFamily = fontSelect.value;
     }
 
-    // Apply selected color
     if (colorPicker) {
       displayRecipientName.style.color = colorPicker.value;
-      colorHex.textContent = colorPicker.value.toLowerCase();
+      if (colorHex) colorHex.textContent = colorPicker.value.toLowerCase();
     }
 
-    // Auto Font Scaling based on length
     const length = name.length;
     if (length <= 14) {
       displayRecipientName.style.fontSize = 'clamp(18px, 4.2vw, 62px)';
@@ -58,20 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Event Listeners for Input Controls
-  if (recipientInput) {
-    recipientInput.addEventListener('input', updateCertificateName);
-  }
+  recipientInput.addEventListener('input', updateCertificateName);
 
-  if (fontSelect) {
-    fontSelect.addEventListener('change', updateCertificateName);
-  }
+  if (fontSelect) fontSelect.addEventListener('change', updateCertificateName);
+  if (colorPicker) colorPicker.addEventListener('input', updateCertificateName);
 
-  if (colorPicker) {
-    colorPicker.addEventListener('input', updateCertificateName);
-  }
-
-  if (btnClear && recipientInput) {
+  if (btnClear) {
     btnClear.addEventListener('click', () => {
       recipientInput.value = '';
       recipientInput.focus();
@@ -79,8 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Preset Chips
-  presetChips.forEach(chip => {
+  presetChips.forEach((chip) => {
     chip.addEventListener('click', () => {
       const selectedName = chip.getAttribute('data-name');
       if (recipientInput) {
@@ -90,13 +73,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Export High-Resolution PNG (1600 x 1131)
   function downloadCertificatePNG() {
+    if (!btnDownload || !exportCanvas || !ctx) return;
+
     const rawValue = recipientInput.value;
     const name = (rawValue.trim() !== '' ? rawValue.trim() : 'NAME').toUpperCase();
     const selectedFont = fontSelect ? fontSelect.value : "'Cinzel', serif";
-    const selectedColor = colorPicker ? colorPicker.value : "#ca7d08";
+    const selectedColor = colorPicker ? colorPicker.value : '#ca7d08';
 
+    const originalHTML = btnDownload.innerHTML;
     btnDownload.disabled = true;
     btnDownload.innerHTML = `
       <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
@@ -105,16 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
       Generating High-Res PNG...
     `;
 
-    // Ensure canvas dimensions match 1600 x 1131
     exportCanvas.width = 1600;
     exportCanvas.height = 1131;
 
     const render = () => {
-      // 1. Draw Base Certificate Background Image
       ctx.clearRect(0, 0, 1600, 1131);
       ctx.drawImage(templateImg, 0, 0, 1600, 1131);
 
-      // 2. Draw Recipient Name (Centered at X=1000, Y=565)
       let fontSize = 82;
       if (name.length > 14) {
         fontSize = Math.max(30, Math.round(82 * (14 / name.length)));
@@ -128,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.fillText(name, 1000, 565);
       ctx.restore();
 
-      // 3. Trigger Instant Download
       setTimeout(() => {
         try {
           const dataURL = exportCanvas.toDataURL('image/png', 1.0);
@@ -145,8 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
             html2canvas(document.getElementById('certificateWrapper'), {
               scale: 2,
               useCORS: true,
-              backgroundColor: null
-            }).then(canvasEl => {
+              backgroundColor: null,
+            }).then((canvasEl) => {
               const dataURL = canvasEl.toDataURL('image/png');
               const link = document.createElement('a');
               link.download = `Certificate_${name.toLowerCase()}.png`;
@@ -156,14 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         } finally {
           btnDownload.disabled = false;
-          btnDownload.innerHTML = `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Download Certificate
-          `;
+          btnDownload.innerHTML = originalHTML;
         }
       }, 100);
     };
@@ -179,6 +153,19 @@ document.addEventListener('DOMContentLoaded', () => {
     btnDownload.addEventListener('click', downloadCertificatePNG);
   }
 
-  // Initial update
   updateCertificateName();
+}
+
+export function setCertificateRecipient(name) {
+  const recipientInput = document.getElementById('recipientInput');
+  if (recipientInput) {
+    recipientInput.value = name || '';
+    recipientInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('recipientInput')) {
+    initCertificateGenerator();
+  }
 });

@@ -15,13 +15,16 @@ export const signAdminToken = (user) => {
       role: 'admin',
     },
     getJwtSecret(),
-    { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
   );
 };
 
 export const requireAdminAuth = (req, res, next) => {
+  const cookieToken = req.cookies?.token;
   const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const headerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+
+  const token = cookieToken || headerToken;
 
   if (!token) {
     return res.status(401).json({ success: false, message: 'Admin login is required.' });

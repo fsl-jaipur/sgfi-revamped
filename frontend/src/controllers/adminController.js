@@ -1,6 +1,6 @@
+import { initCertificateGenerator, setCertificateRecipient } from './script.js';
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-const AUTH_TOKEN_KEY = 'sgfi_admin_token';
-const AUTH_USER_KEY = 'sgfi_admin_user';
 
 const qs = (selector) => document.querySelector(selector);
 
@@ -14,36 +14,19 @@ const escapeHtml = (value) =>
 
 const cleanAadhaar = (value) => String(value || '').replace(/\D/g, '');
 
-const getToken = () => localStorage.getItem(AUTH_TOKEN_KEY);
-
-const setStoredSession = (token, user) => {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
-  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user || {}));
-};
-
-const clearStoredSession = () => {
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  localStorage.removeItem(AUTH_USER_KEY);
-};
-
-const getStoredUser = () => {
+const redirectToLogin = async () => {
   try {
-    return JSON.parse(localStorage.getItem(AUTH_USER_KEY) || '{}');
-  } catch {
-    return {};
-  }
-};
-
-const redirectToLogin = () => {
-  clearStoredSession();
+    await fetch(`${BACKEND_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch (_) {}
   window.location.href = 'admin-login.html';
 };
 
 const apiFetch = async (path, options = {}) => {
   const headers = new Headers(options.headers || {});
-  const token = getToken();
 
-  if (token) headers.set('Authorization', `Bearer ${token}`);
   if (options.body && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
@@ -51,11 +34,15 @@ const apiFetch = async (path, options = {}) => {
   const response = await fetch(`${BACKEND_URL}${path}`, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
   const data = await response.json().catch(() => ({}));
 
-  if (response.status === 401) redirectToLogin();
+  if (response.status === 401 && window.location.pathname.endsWith('admin.html')) {
+    window.location.href = 'admin-login.html';
+  }
+
   if (!response.ok || data.success === false) {
     throw new Error(data.message || 'Request failed.');
   }
@@ -77,19 +64,49 @@ const clearMessage = (element) => {
   element.classList.remove('admin-alert-error', 'admin-alert-success');
 };
 
-const initLoginPage = () => {
+const initLoginPage = async () => {
   const form = qs('#admin-login-form');
   if (!form) return;
 
-  if (getToken()) {
-    window.location.href = 'admin.html';
-    return;
-  }
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.success) {
+      window.location.href = 'admin.html';
+      return;
+    }
+  } catch (_) {}
 
   const usernameInput = qs('#admin-username');
   const passwordInput = qs('#admin-password');
+  const togglePasswordBtn = qs('#toggle-password');
   const errorEl = qs('#admin-login-error');
   const submitBtn = qs('#admin-login-submit');
+
+  if (togglePasswordBtn && passwordInput) {
+    const closedIcon = togglePasswordBtn.querySelector('.eye-icon-closed');
+    const openIcon = togglePasswordBtn.querySelector('.eye-icon-open');
+
+    togglePasswordBtn.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+    });
+
+    togglePasswordBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+
+      if (isPassword) {
+        closedIcon?.classList.add('hidden');
+        openIcon?.classList.remove('hidden');
+        togglePasswordBtn.setAttribute('aria-label', 'Hide password');
+      } else {
+        openIcon?.classList.add('hidden');
+        closedIcon?.classList.remove('hidden');
+        togglePasswordBtn.setAttribute('aria-label', 'Show password');
+      }
+    });
+  }
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -108,19 +125,18 @@ const initLoginPage = () => {
     submitBtn.textContent = 'Checking...';
 
     try {
-      const data = await fetch(`${BACKEND_URL}/api/auth/login`, {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
-      }).then(async (response) => {
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok || !body.success) {
-          throw new Error(body.message || 'Login failed.');
-        }
-        return body;
+        credentials: 'include',
       });
+      const data = await response.json().catch(() => ({}));
 
-      setStoredSession(data.token, data.user);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Login failed.');
+      }
+
       window.location.href = 'admin.html';
     } catch (error) {
       setMessage(errorEl, error.message || `Unable to connect to ${BACKEND_URL}.`);
@@ -131,14 +147,57 @@ const initLoginPage = () => {
   });
 };
 
-const initDashboardPage = () => {
+const initDashboardPage = async () => {
   const form = qs('#admin-player-form');
   if (!form) return;
 
-  if (!getToken()) {
+  const currentUserEl = qs('#admin-current-user');
+
+  try {
+    const meRes = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
+    const meData = await meRes.json().catch(() => ({}));
+    if (!meRes.ok || !meData.success) {
+      redirectToLogin();
+      return;
+    }
+    if (currentUserEl) {
+      currentUserEl.textContent = meData.user?.username || 'Admin';
+    }
+  } catch (_) {
     redirectToLogin();
     return;
   }
+
+  // Initialize Certificate Generator Modal controller
+  initCertificateGenerator();
+
+  const certModal = qs('#cert-modal');
+  const certModalClose = qs('#cert-modal-close');
+
+  const closeCertModal = () => {
+    if (certModal) {
+      certModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  };
+
+  if (certModalClose) {
+    certModalClose.addEventListener('click', closeCertModal);
+  }
+
+  if (certModal) {
+    certModal.addEventListener('click', (event) => {
+      if (event.target === certModal) {
+        closeCertModal();
+      }
+    });
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && certModal && !certModal.classList.contains('hidden')) {
+      closeCertModal();
+    }
+  });
 
   const state = {
     players: [],
@@ -157,7 +216,6 @@ const initDashboardPage = () => {
   const refreshBtn = qs('#admin-refresh');
   const newBtn = qs('#admin-new-record');
   const logoutBtn = qs('#admin-logout');
-  const currentUserEl = qs('#admin-current-user');
   const saveBtn = qs('#admin-save-player');
   const cancelBtn = qs('#admin-cancel-edit');
   const photoUpload = qs('#admin-photo-upload');
@@ -176,9 +234,6 @@ const initDashboardPage = () => {
     venue: qs('#admin-venue'),
     player_photo: qs('#admin-player-photo'),
   };
-
-  const user = getStoredUser();
-  currentUserEl.textContent = user.username || 'Admin';
 
   const destroyDataTable = () => {
     if (!state.dataTable) return;
@@ -237,6 +292,7 @@ const initDashboardPage = () => {
             <td>
               <div class="admin-table-actions">
                 <button type="button" class="admin-row-button admin-row-button-edit" data-action="edit" data-id="${id}">Edit</button>
+                <button type="button" class="admin-row-button admin-row-button-cert" data-action="cert-edit" data-id="${id}">Certificate Edit</button>
                 <button type="button" class="admin-row-button admin-row-button-delete" data-action="delete" data-id="${id}">Delete</button>
               </div>
             </td>
@@ -369,6 +425,19 @@ const initDashboardPage = () => {
 
     if (button.dataset.action === 'edit') {
       fillForm(player);
+      return;
+    }
+
+    if (button.dataset.action === 'cert-edit') {
+      const subtitle = qs('#cert-modal-player-subtitle');
+      if (subtitle) {
+        subtitle.textContent = `Generating certificate for ${player.player_name} (Serial: ${player.serial_no || 'N/A'})`;
+      }
+      setCertificateRecipient(player.player_name);
+      if (certModal) {
+        certModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
       return;
     }
 

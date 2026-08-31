@@ -4,8 +4,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const aadhaarError = document.getElementById("aadhaar-error");
   const recordResult = document.getElementById("record-result");
   const searchBtn = document.getElementById("btn-search-record");
-  const recipientInput = document.getElementById("recipientInput");
-
   if (!searchForm || !aadhaarInput || !recordResult) return;
 
   const BACKEND_URL =
@@ -96,7 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <span class="badge" style="background:#E4A11B; color:#0B2318; padding:4px 12px; border-radius:20px; font-weight:700;">${player.game}</span>
             </div>
 
-            <dl class="grid sm:grid-cols-2 gap-4 text-sm mb-6 bg-[var(--sgfi-card)] p-4 rounded-lg">
+            <dl class="grid sm:grid-cols-2 gap-4 text-sm bg-[var(--sgfi-card)] p-4 rounded-lg">
               <div>
                 <dt class="text-[var(--sgfi-ink-faint)]">Position / Medal</dt>
                 <dd class="font-bold text-[var(--sgfi-red-dark)]">${player.position}</dd>
@@ -122,26 +120,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 <dd class="font-semibold">${player.venue}</dd>
               </div>
             </dl>
-
-            <div class="p-4 bg-[var(--sgfi-green)] text-white rounded-lg flex items-center justify-between gap-4">
-              <div>
-                <p class="font-semibold text-sm">Official Certificate Available!</p>
-                <p class="text-xs text-white/70">Player name has been automatically auto-filled in the generator below.</p>
-              </div>
-              <a href="#certificate-generator" class="btn btn-secondary text-xs shrink-0" style="background:#E4A11B; color:#0B2318; padding:8px 14px; font-weight:700; border-radius:6px;">
-                Scroll To Certificate
-              </a>
-            </div>
           </div>
         </div>
       `;
-
-      // Auto-fill recipient name into Certificate Generator!
-      if (recipientInput) {
-        recipientInput.value = player.player_name;
-        // Trigger input event to update live certificate preview
-        recipientInput.dispatchEvent(new Event("input", { bubbles: true }));
-      }
     } catch (err) {
       console.error("Aadhaar search error:", err);
       recordResult.classList.remove("hidden");

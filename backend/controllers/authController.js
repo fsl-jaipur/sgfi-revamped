@@ -2,6 +2,13 @@ import bcrypt from "bcryptjs";
 import { AuthModel } from "../models/authModel.js";
 import { signAdminToken } from "../middleware/auth.js";
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  maxAge: 60 * 60 * 1000, // 1 hour
+};
+
 export const loginUser = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -21,7 +28,6 @@ export const loginUser = async (req, res) => {
     }
 
     const passwordMatches = await bcrypt.compare(password, user.password || "");
-    // console.log("passwordMatch", passwordMatches);
     if (!passwordMatches) {
       return res
         .status(401)
@@ -33,10 +39,12 @@ export const loginUser = async (req, res) => {
 
     const token = signAdminToken(user);
 
+    // Set cookie
+    res.cookie("token", token, COOKIE_OPTIONS);
+
     return res.status(200).json({
       success: true,
       message: "Login successful.",
-      token,
       user: {
         id: user._id,
         username: user.username,
@@ -51,4 +59,27 @@ export const loginUser = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+export const logoutUser = async (req, res) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  });
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully.",
+  });
+};
+
+export const getCurrentUser = async (req, res) => {
+  return res.status(200).json({
+    success: true,
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      role: req.user.role,
+    },
+  });
 };
