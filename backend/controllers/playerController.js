@@ -76,10 +76,21 @@ export const searchPlayerByAadhaar = async (req, res) => {
 
 export const getAllPlayers = async (req, res) => {
   try {
-    const limit = req.query.limit || 100;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const search = req.query.search || '';
-    const players = await PlayerModel.findAll(limit, search);
-    return res.status(200).json({ success: true, count: players.length, data: players });
+
+    const result = await PlayerModel.findPaginated(page, limit, search);
+
+    return res.status(200).json({
+      success: true,
+      count: result.data.length,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      totalPages: result.totalPages,
+      data: result.data,
+    });
   } catch (error) {
     console.error('Error in getAllPlayers:', error);
     return res.status(500).json({ success: false, message: 'Internal server error.', error: error.message });

@@ -79,6 +79,55 @@ export class PlayerModel {
     }
   }
 
+  // Get active player records with server-side pagination (max 50 per request).
+  static async findPaginated(page = 1, limit = 50, search = '') {
+    try {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 50));
+      const skip = (pageNum - 1) * limitNum;
+
+      const filter = { is_deleted: { $ne: true } };
+      const cleanSearch = String(search || '').trim();
+
+      if (cleanSearch) {
+        const regex = new RegExp(escapeRegex(cleanSearch), 'i');
+        filter.$or = [
+          { player_name: regex },
+          { aadhaar_number: regex },
+          { serial_no: regex },
+          { game: regex },
+          { state: regex },
+        ];
+      }
+
+      const total = await PlayerMongoModel.countDocuments(filter);
+      const totalPages = Math.ceil(total / limitNum) || 1;
+
+      const mongoRecords = await PlayerMongoModel.find(filter)
+        .sort({ updatedAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean();
+
+      return {
+        data: mongoRecords || [],
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages,
+      };
+    } catch (err) {
+      console.error('MongoDB findPaginated error:', err.message);
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+      };
+    }
+  }
+
   // Get active player record by ID.
   static async findById(id) {
     try {

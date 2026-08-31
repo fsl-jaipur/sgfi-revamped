@@ -85,6 +85,8 @@
             <tbody id="admin-player-rows"></tbody>
           </table>
         </div>
+
+        <div id="admin-pagination-container" class="admin-pagination-container"></div>
       </div>
 
       <aside class="admin-form-panel" aria-labelledby="admin-form-title">
@@ -188,6 +190,8 @@
           <div class="cert-main-content">
             <!-- Controls Panel -->
             <section class="cert-control-panel">
+              <div id="certValidationMessage" class="admin-alert admin-alert-error hidden mb-3" role="alert"></div>
+
               <div class="cert-form-group">
                 <label class="cert-field-label" for="recipientInput">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

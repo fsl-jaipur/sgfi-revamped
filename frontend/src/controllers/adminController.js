@@ -21,7 +21,7 @@ const redirectToLogin = async () => {
       credentials: 'include',
     });
   } catch (_) {}
-  window.location.href = 'admin-login.html';
+  window.location.replace('admin-login.html');
 };
 
 const apiFetch = async (path, options = {}) => {
@@ -40,7 +40,7 @@ const apiFetch = async (path, options = {}) => {
   const data = await response.json().catch(() => ({}));
 
   if (response.status === 401 && window.location.pathname.endsWith('admin.html')) {
-    window.location.href = 'admin-login.html';
+    window.location.replace('admin-login.html');
   }
 
   if (!response.ok || data.success === false) {
@@ -64,6 +64,25 @@ const clearMessage = (element) => {
   element.classList.remove('admin-alert-error', 'admin-alert-success');
 };
 
+// Security check against BFCache / Browser Back button showing protected Admin Panel after logout
+window.addEventListener('pageshow', async (event) => {
+  if (window.location.pathname.endsWith('admin.html')) {
+    if (event.persisted || (window.performance && window.performance.navigation && window.performance.navigation.type === 2)) {
+      window.location.reload();
+      return;
+    }
+    try {
+      const meRes = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
+      const meData = await meRes.json().catch(() => ({}));
+      if (!meRes.ok || !meData.success) {
+        window.location.replace('admin-login.html');
+      }
+    } catch (_) {
+      window.location.replace('admin-login.html');
+    }
+  }
+});
+
 const initLoginPage = async () => {
   const form = qs('#admin-login-form');
   if (!form) return;
@@ -72,7 +91,7 @@ const initLoginPage = async () => {
     const res = await fetch(`${BACKEND_URL}/api/auth/me`, { credentials: 'include' });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.success) {
-      window.location.href = 'admin.html';
+      window.location.replace('admin.html');
       return;
     }
   } catch (_) {}
@@ -137,7 +156,7 @@ const initLoginPage = async () => {
         throw new Error(data.message || 'Login failed.');
       }
 
-      window.location.href = 'admin.html';
+      window.location.replace('admin.html');
     } catch (error) {
       setMessage(errorEl, error.message || `Unable to connect to ${BACKEND_URL}.`);
     } finally {
@@ -201,6 +220,10 @@ const initDashboardPage = async () => {
 
   const state = {
     players: [],
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 1,
     searchTimer: null,
     dataTable: null,
   };
@@ -246,30 +269,90 @@ const initDashboardPage = async () => {
 
     state.dataTable = new DataTable(tableEl, {
       autoWidth: false,
-      info: true,
+      info: false,
       lengthChange: false,
       ordering: true,
-      pageLength: 50,
-      paging: true,
-      pagingType: 'full_numbers',
+      paging: false,
       searching: false,
       language: {
         emptyTable: 'No active player records found.',
-        info: 'Showing _START_ to _END_ of _TOTAL_ records',
-        infoEmpty: 'Showing 0 records',
-        paginate: {
-          first: 'First',
-          previous: 'Previous',
-          next: 'Next',
-          last: 'Last',
-        },
       },
     });
   };
 
+  const renderPaginationControls = () => {
+    let paginationEl = qs('#admin-pagination-container');
+    if (!paginationEl) {
+      paginationEl = document.createElement('div');
+      paginationEl.id = 'admin-pagination-container';
+      paginationEl.className = 'admin-pagination-container';
+      if (tableEl && tableEl.parentElement) {
+        tableEl.parentElement.after(paginationEl);
+      }
+    }
+
+    const { page, totalPages, total, limit } = state;
+    if (total <= 0) {
+      paginationEl.innerHTML = '';
+      return;
+    }
+
+    const start = (page - 1) * limit + 1;
+    const end = Math.min(page * limit, total);
+    const infoText = `Showing ${start} to ${end} of ${total} records`;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const delta = 2;
+      const left = page - delta;
+      const right = page + delta + 1;
+
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= left && i < right)) {
+          pages.push(i);
+        } else if (pages[pages.length - 1] !== '...') {
+          pages.push('...');
+        }
+      }
+      return pages;
+    };
+
+    const pageNumbers = getPageNumbers();
+
+    paginationEl.innerHTML = `
+      <div class="admin-pagination-info">${escapeHtml(infoText)}</div>
+      <div class="dt-container">
+        <div class="dt-paging" style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; align-items: center;">
+          <button type="button" class="dt-paging-button ${page === 1 ? 'disabled' : ''}" data-page="1" ${page === 1 ? 'disabled' : ''}>First</button>
+          <button type="button" class="dt-paging-button ${page === 1 ? 'disabled' : ''}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>Previous</button>
+          ${pageNumbers
+            .map((p) => {
+              if (p === '...') {
+                return `<span class="ellipsis" style="padding: 6px 10px; color: var(--sgfi-ink-faint); font-weight: 800;">…</span>`;
+              }
+              return `<button type="button" class="dt-paging-button ${p === page ? 'current' : ''}" data-page="${p}">${p}</button>`;
+            })
+            .join('')}
+          <button type="button" class="dt-paging-button ${page === totalPages ? 'disabled' : ''}" data-page="${page + 1}" ${page === totalPages ? 'disabled' : ''}>Next</button>
+          <button type="button" class="dt-paging-button ${page === totalPages ? 'disabled' : ''}" data-page="${totalPages}" ${page === totalPages ? 'disabled' : ''}>Last</button>
+        </div>
+      </div>
+    `;
+  };
+
+  // Event listener for pagination button clicks
+  document.addEventListener('click', (event) => {
+    const btn = event.target.closest('#admin-pagination-container button[data-page]');
+    if (!btn || btn.disabled) return;
+    const targetPage = parseInt(btn.dataset.page, 10);
+    if (targetPage && targetPage !== state.page) {
+      loadPlayers(targetPage);
+    }
+  });
+
   const renderRows = () => {
     destroyDataTable();
-    totalEl.textContent = state.players.length;
+    totalEl.textContent = state.total;
 
     if (!state.players.length) {
       rowsEl.innerHTML = '';
@@ -304,22 +387,35 @@ const initDashboardPage = async () => {
     initDataTable();
   };
 
-  const loadPlayers = async () => {
-    statusEl.textContent = 'Loading records...';
+  const loadPlayers = async (page = 1) => {
+    statusEl.textContent = `Loading page ${page}...`;
 
     try {
       const search = searchInput.value.trim();
-      const query = new URLSearchParams({ limit: '5000' });
+      const query = new URLSearchParams({ page: String(page), limit: '50' });
       if (search) query.set('search', search);
 
       const data = await apiFetch(`/api/players?${query.toString()}`);
       state.players = data.data || [];
+      state.page = data.page || page;
+      state.limit = data.limit || 50;
+      state.total = data.total ?? state.players.length;
+      state.totalPages = data.totalPages || 1;
+
       renderRows();
-      statusEl.textContent = `${state.players.length} active record${state.players.length === 1 ? '' : 's'} loaded.`;
+      renderPaginationControls();
+
+      statusEl.textContent = state.total === 0
+        ? 'No active player records found.'
+        : `Database records loaded.`;
     } catch (error) {
       statusEl.textContent = error.message || 'Unable to load records.';
       state.players = [];
+      state.page = 1;
+      state.total = 0;
+      state.totalPages = 1;
       renderRows();
+      renderPaginationControls();
     }
   };
 
@@ -406,7 +502,7 @@ const initDashboardPage = async () => {
       });
 
       setMessage(formMessageEl, playerId ? 'Player record updated.' : 'Player record added.', 'success');
-      await loadPlayers();
+      await loadPlayers(state.page);
       if (!playerId) resetForm();
     } catch (error) {
       setMessage(formMessageEl, error.message || 'Unable to save player record.');
@@ -448,7 +544,7 @@ const initDashboardPage = async () => {
       try {
         await apiFetch(`/api/players/${player._id}`, { method: 'DELETE' });
         if (fields.id.value === player._id) resetForm();
-        await loadPlayers();
+        await loadPlayers(state.page);
       } catch (error) {
         statusEl.textContent = error.message || 'Unable to delete record.';
       }
@@ -457,15 +553,15 @@ const initDashboardPage = async () => {
 
   searchInput.addEventListener('input', () => {
     window.clearTimeout(state.searchTimer);
-    state.searchTimer = window.setTimeout(loadPlayers, 250);
+    state.searchTimer = window.setTimeout(() => loadPlayers(1), 250);
   });
 
-  refreshBtn.addEventListener('click', loadPlayers);
+  refreshBtn.addEventListener('click', () => loadPlayers(state.page));
   newBtn.addEventListener('click', resetForm);
   cancelBtn.addEventListener('click', resetForm);
   logoutBtn.addEventListener('click', redirectToLogin);
 
-  loadPlayers();
+  loadPlayers(1);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
